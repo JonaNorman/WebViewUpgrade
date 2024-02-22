@@ -9,4 +9,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <TextView
+        android:id="@+id/userAgentTextView"
+        android:textSize="12dp"
+        android:padding="20dp"
+        android:background="#99699D44"
+        android:textColor="#ffffff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+    </TextView>
+
 </FrameLayout>
