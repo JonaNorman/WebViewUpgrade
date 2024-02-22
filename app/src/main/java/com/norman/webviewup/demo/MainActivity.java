@@ -71,9 +71,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
             public void onClick(View v) {
                 if (WebViewUpgrade.isProcessing()) {
                     Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_SHORT).show();
-                } else if (WebViewUpgrade.isFailed()) {
-                    Toast.makeText(getApplicationContext(), "webView upgrade failed, please check the reason", Toast.LENGTH_SHORT).show();
-                } else if (WebViewUpgrade.isCompleted()) {
+                }  else if (WebViewUpgrade.isCompleted()) {
                     Toast.makeText(getApplicationContext(), "WebView is already upgrade success", Toast.LENGTH_SHORT).show();
                 } else {
                     showChooseWebViewDialog();
@@ -136,8 +134,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         packageInfo.versionName,
                         new DownloadSinkImpl())
                         .build();
-                WebViewUpgrade.init(upgradeOptions);
-                WebViewUpgrade.upgrade();
+                WebViewUpgrade.upgrade(upgradeOptions);
                 updateUpgradeWebViewPackageInfo();
                 updateUpgradeWebViewStatus();
             }

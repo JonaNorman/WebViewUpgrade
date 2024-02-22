@@ -38,13 +38,11 @@ public class WebViewUpgrade {
 
     private static final int STATUS_UNINIT = 0;
 
-    private static final int STATUS_INIT = 1;
+    private static final int STATUS_RUNNING = 1;
 
-    private static final int STATUS_RUNNING = 2;
+    private static final int STATUS_FAIL = 2;
 
-    private static final int STATUS_FAIL = 3;
-
-    private static final int STATUS_COMPLETE = 4;
+    private static final int STATUS_COMPLETE = 3;
 
     private static UpgradeOptions UPGRADE_OPTIONS;
 
@@ -56,30 +54,10 @@ public class WebViewUpgrade {
     private static String SYSTEM_WEB_VIEW_PACKAGE_NAME;
 
     private static String SYSTEM_WEB_VIEW_PACKAGE_VERSION;
-
-    private static String UPGRADE_WEB_VIEW_PACKAGE_NAME;
-
-    private static String UPGRADE_WEB_VIEW_PACKAGE_VERSION;
-
-
     private static Throwable UPGRADE_THROWABLE;
 
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
 
-
-
-
-
-    public synchronized static void init(UpgradeOptions options) {
-        if (UPGRADE_STATUS != STATUS_UNINIT) {
-            throw new IllegalStateException("WebViewUpgrade is already init");
-        }
-        if (options == null) {
-            throw new NullPointerException("options is  null");
-        }
-        UPGRADE_OPTIONS = options;
-        UPGRADE_STATUS = STATUS_INIT;
-    }
 
 
     public synchronized static void addUpgradeCallback(UpgradeCallback upgradeCallback) {
@@ -119,15 +97,14 @@ public class WebViewUpgrade {
         return UPGRADE_PROCESS;
     }
 
-    public synchronized static void upgrade() {
+    public synchronized static void upgrade(UpgradeOptions options) {
         try {
-            if (UPGRADE_STATUS == STATUS_UNINIT) {
-                throw new IllegalStateException("please first init");
-            }
-            if (UPGRADE_STATUS != STATUS_INIT) {
+            if (UPGRADE_STATUS == STATUS_RUNNING ||UPGRADE_STATUS == STATUS_COMPLETE ) {
                 return;
             }
+            UPGRADE_OPTIONS = options;
             UPGRADE_STATUS = STATUS_RUNNING;
+            UPGRADE_THROWABLE = null;
             HandlerThread upgradeThread = new HandlerThread("WebViewUpgrade");
             upgradeThread.start();
             Handler upgradeHandler = new Handler(upgradeThread.getLooper());
@@ -337,12 +314,12 @@ public class WebViewUpgrade {
             callProcessCallback(1.0f);
             callCompleteCallback();
         } finally {
-//            if (managerHook != null) {
-//                managerHook.restore();
-//            }
-//            if (updateServiceHook != null) {
-//                updateServiceHook.restore();
-//            }
+            if (managerHook != null) {
+                managerHook.restore();
+            }
+            if (updateServiceHook != null) {
+                updateServiceHook.restore();
+            }
 
         }
     }
