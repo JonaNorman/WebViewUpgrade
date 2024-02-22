@@ -3,6 +3,7 @@ package com.norman.webviewup.lib.hook;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -100,6 +101,16 @@ public class PackageManagerHook extends BinderHook {
                 return PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
             } else {
                 return (int) invoke();
+            }
+        }
+
+        @Override
+        protected String getInstallerPackageName(String packageName) {
+            if (packageName.equals(webViewPackageName)) {
+                // fake google play
+                return "com.android.vending";
+            } else {
+                return (String) invoke();
             }
         }
 

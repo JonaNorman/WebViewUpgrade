@@ -24,10 +24,23 @@ import java.util.List;
 
 public class MainActivity extends Activity implements UpgradeCallback {
 
-    private static final List<PackageInfo> UPGRADE_PACKAGE_LIST = Arrays.asList(new PackageInfo("com.google.android.webview",
-            "122.0.6261.43",
-            "https://d-01.aabstatic.com/0224/android_system_webview_122.0.6261.43_androidapksbox.apk"
-    ));
+    private static final List<PackageInfo> UPGRADE_PACKAGE_LIST = Arrays.asList(
+            new PackageInfo(
+                    "com.google.android.webview",
+                    "122.0.6261.64",
+                    "https://gitee.com/JonaNorman/webviewapk/raw/master/com.google.android.webview_122.0.6261.64-626106400_armeabi-v7a.apk"),
+            new PackageInfo(
+                    "com.android.webview",
+                    "113.0.5672.136",
+                    "https://gitee.com/JonaNorman/webviewapk/raw/master/com.android.webview_113.0.5672.136_armeabi-v7a.apk"),
+            new PackageInfo(
+                    "com.huawei.webview",
+                    "14.0.0.331",
+                    "https://gitee.com/JonaNorman/webviewapk/raw/master/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.apk")
+
+    );
+
+
 
     ProgressBar progressBar;
     TextView systemWebViewPackageTextView;

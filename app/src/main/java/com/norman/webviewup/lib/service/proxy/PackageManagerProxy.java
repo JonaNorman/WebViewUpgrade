@@ -33,6 +33,10 @@ public abstract class PackageManagerProxy extends RuntimeProxy {
     @Method("getComponentEnabledSetting")
     protected abstract int getComponentEnabledSetting(ComponentName componentName);
 
+    @Method("getInstallerPackageName")
+    protected abstract   String getInstallerPackageName(String packageName);
+
+
 
     @Method("asBinder")
     protected abstract android.os.IBinder asBinder();
