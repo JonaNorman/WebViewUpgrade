@@ -24,7 +24,7 @@ The WebView kernel selection page looks like the image below:
 
 After a successful upgrade, the package name of the WebView kernel changes to `com.google.android.webview`, and the Chromium version in the UserAgent also changes to 122.0.6261.64:
 
-<img src="/preview/webview_can_play_h265.png" width="400px">
+<img src="/preview/webview_can_play_h265.jpg" width="400px">
 
 ## Compatibility
 

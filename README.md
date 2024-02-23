@@ -23,7 +23,7 @@ WebView内核选择页面如下图所示
 
 升级成功的WebView内涵的包名变成了`com.google.android.webview`，UserAgent中的Chromium实际版本也变成了122.0.6261.64
 
-<img src="/preview/webview_can_play_h265.png" width="400px">
+<img src="/preview/webview_can_play_h265.jpg" width="400px">
 
 # 兼容性
 
