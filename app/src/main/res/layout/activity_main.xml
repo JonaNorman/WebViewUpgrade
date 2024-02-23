@@ -83,13 +83,27 @@
 
     </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/upgradeProgressBar"
-        style="?android:attr/progressBarStyleHorizontal"
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:layout_marginTop="10dp"
-        android:max="100" />
+        android:layout_height="wrap_content">
+        <ProgressBar
+            android:id="@+id/upgradeProgressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:max="100" />
+
+        <TextView
+            android:id="@+id/upgradeProgressTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"/>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

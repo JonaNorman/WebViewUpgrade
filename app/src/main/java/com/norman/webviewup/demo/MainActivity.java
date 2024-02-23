@@ -49,6 +49,8 @@ public class MainActivity extends Activity implements UpgradeCallback {
     TextView upgradeStatusTextView;
     TextView upgradeErrorTextView;
 
+    TextView upgradeProgressTextView;
+
     UpgradeInfo selectUpgradeInfo;
 
 
@@ -61,6 +63,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         upgradeWebViewPackageTextView = findViewById(R.id.upgradeWebViewPackageTextView);
         upgradeStatusTextView = findViewById(R.id.upgradeStatusTextView);
         upgradeErrorTextView = findViewById(R.id.upgradeErrorTextView);
+        upgradeProgressTextView =findViewById(R.id.upgradeProgressTextView);
         updateSystemWebViewPackageInfo();
         updateSystemWebViewPackageInfo();
         updateUpgradeWebViewStatus();
@@ -185,7 +188,9 @@ public class MainActivity extends Activity implements UpgradeCallback {
         } else {
             upgradeStatusTextView.setText("");
         }
-        progressBar.setProgress((int) (WebViewUpgrade.getUpgradeProcess() * 100));
+        int process = (int) (WebViewUpgrade.getUpgradeProcess() * 100);
+        progressBar.setProgress(process);
+        upgradeProgressTextView.setText(process+"%");
         Throwable throwable = WebViewUpgrade.getUpgradeError();
         if (throwable == null) {
             upgradeErrorTextView.setText("");
