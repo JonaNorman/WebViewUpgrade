@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
+import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 
@@ -90,6 +91,9 @@ public class PackageManagerHook extends BinderHook {
                             + " in apk " + apkPath);
                 }
                 packageInfo.applicationInfo.nativeLibraryDir = nativeLibraryDir.getAbsolutePath();
+                if (TextUtils.isEmpty(packageInfo.applicationInfo.sourceDir)) {
+                    packageInfo.applicationInfo.sourceDir = apkPath;
+                }
                 return packageInfo;
             }
             return (PackageInfo) invoke();
