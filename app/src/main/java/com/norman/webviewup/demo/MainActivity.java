@@ -24,19 +24,19 @@ import java.util.List;
 
 public class MainActivity extends Activity implements UpgradeCallback {
 
-    private static final List<PackageInfo> UPGRADE_PACKAGE_LIST = Arrays.asList(
-            new PackageInfo(
+    private static final List<UpgradeInfo> UPGRADE_PACKAGE_LIST = Arrays.asList(
+            new UpgradeInfo(
                     "com.google.android.webview",
                     "122.0.6261.64",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64(armeabi-v7a).apk"),
-            new PackageInfo(
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_armeabi-v7a.zip"),
+            new UpgradeInfo(
                     "com.android.webview",
                     "113.0.5672.136",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.136(armeabi-v7a).apk"),
-            new PackageInfo(
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.13_armeabi-v7a.zip"),
+            new UpgradeInfo(
                     "com.huawei.webview",
                     "14.0.0.331",
-                    "https://gitee.com/JonaNorman/webviewapk/raw/master/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.apk")
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip")
 
     );
 
@@ -49,7 +49,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
     TextView upgradeStatusTextView;
     TextView upgradeErrorTextView;
 
-    PackageInfo selectPackageInfo;
+    UpgradeInfo selectUpgradeInfo;
 
 
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,9 +70,9 @@ public class MainActivity extends Activity implements UpgradeCallback {
             @Override
             public void onClick(View v) {
                 if (WebViewUpgrade.isProcessing()) {
-                    Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_LONG).show();
                 }  else if (WebViewUpgrade.isCompleted()) {
-                    Toast.makeText(getApplicationContext(), "WebView is already upgrade success", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
                     showChooseWebViewDialog();
                 }
@@ -125,13 +125,13 @@ public class MainActivity extends Activity implements UpgradeCallback {
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                PackageInfo packageInfo = UPGRADE_PACKAGE_LIST.get(which);
-                selectPackageInfo = packageInfo;
+                UpgradeInfo upgradeInfo = UPGRADE_PACKAGE_LIST.get(which);
+                selectUpgradeInfo = upgradeInfo;
                 UpgradeOptions upgradeOptions = new UpgradeOptions
                         .Builder(getApplicationContext(),
-                        packageInfo.packageName,
-                        packageInfo.url,
-                        packageInfo.versionName,
+                        upgradeInfo.packageName,
+                        upgradeInfo.url,
+                        upgradeInfo.versionName,
                         new DownloadSinkImpl())
                         .build();
                 WebViewUpgrade.upgrade(upgradeOptions);
@@ -158,14 +158,16 @@ public class MainActivity extends Activity implements UpgradeCallback {
     }
 
     private void updateUpgradeWebViewPackageInfo() {
-        String upgradeWebViewPackageName = WebViewUpgrade.getUpgradeWebViewPackageName();
-        String upgradeWebViewPackageVersion = WebViewUpgrade.getUpgradeWebViewVersion();
+        String upgradeWebViewPackageName = selectUpgradeInfo!= null?selectUpgradeInfo.packageName:null;
+        String upgradeWebViewPackageVersion =  selectUpgradeInfo!= null?selectUpgradeInfo.versionName:null;
 
         String upgradeWebViewPackageInfo = "";
         if (!TextUtils.isEmpty(upgradeWebViewPackageName)
                 || !TextUtils.isEmpty(upgradeWebViewPackageVersion)) {
             upgradeWebViewPackageInfo = (!TextUtils.isEmpty(upgradeWebViewPackageName) ? upgradeWebViewPackageName : "unknown")
                     + ":" + (!TextUtils.isEmpty(upgradeWebViewPackageVersion) ? upgradeWebViewPackageVersion : "unknown");
+        }else {
+            upgradeWebViewPackageInfo = "";
         }
         upgradeWebViewPackageTextView.setText(upgradeWebViewPackageInfo);
     }
@@ -173,7 +175,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
 
     private void updateUpgradeWebViewStatus() {
         if (WebViewUpgrade.isProcessing()) {
-            upgradeStatusTextView.setText("runing...");
+            upgradeStatusTextView.setText("upgrading...");
         } else if (WebViewUpgrade.isFailed()) {
             upgradeStatusTextView.setText("fail");
         } else if (WebViewUpgrade.isCompleted()) {
@@ -181,7 +183,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         } else if (WebViewUpgrade.isInited()) {
             upgradeStatusTextView.setText("init");
         } else {
-            upgradeStatusTextView.setText("uninit");
+            upgradeStatusTextView.setText("");
         }
         progressBar.setProgress((int) (WebViewUpgrade.getUpgradeProcess() * 100));
         Throwable throwable = WebViewUpgrade.getUpgradeError();
@@ -192,9 +194,9 @@ public class MainActivity extends Activity implements UpgradeCallback {
         }
     }
 
-    static class PackageInfo {
+    static class UpgradeInfo {
 
-        public PackageInfo(String packageName, String versionName, String url) {
+        public UpgradeInfo(String packageName, String versionName, String url) {
             this.title = packageName + "\n" + versionName;
             this.url = url;
             this.packageName = packageName;

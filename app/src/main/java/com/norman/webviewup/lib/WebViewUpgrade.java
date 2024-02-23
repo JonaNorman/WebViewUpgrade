@@ -11,10 +11,11 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.webkit.WebView;
 
 import com.norman.webviewup.lib.download.DownloadAction;
-import com.norman.webviewup.lib.download.DownloaderSink;
+import com.norman.webviewup.lib.download.DownloadSink;
 import com.norman.webviewup.lib.hook.PackageManagerHook;
 import com.norman.webviewup.lib.hook.WebViewUpdateServiceHook;
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
@@ -22,11 +23,12 @@ import com.norman.webviewup.lib.service.interfaces.IServiceManager;
 import com.norman.webviewup.lib.service.interfaces.IWebViewFactory;
 import com.norman.webviewup.lib.service.interfaces.IWebViewUpdateService;
 import com.norman.webviewup.lib.util.ApkUtils;
+import com.norman.webviewup.lib.util.FileUtils;
+import com.norman.webviewup.lib.util.Md5Utils;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -51,13 +53,13 @@ public class WebViewUpgrade {
 
     private static float UPGRADE_PROCESS;
 
-    private static String SYSTEM_WEB_VIEW_PACKAGE_NAME;
+    private static PackageInfo SYSTEM_WEB_VIEW_PACKAGE_INFO;
 
-    private static String SYSTEM_WEB_VIEW_PACKAGE_VERSION;
+    private static PackageInfo UPGRADE_WEB_VIEW_PACKAGE_INFO;
+
     private static Throwable UPGRADE_THROWABLE;
 
     private static final Handler MAIN_HANDLER = new Handler(Looper.getMainLooper());
-
 
 
     public synchronized static void addUpgradeCallback(UpgradeCallback upgradeCallback) {
@@ -89,17 +91,17 @@ public class WebViewUpgrade {
         return UPGRADE_STATUS != STATUS_UNINIT;
     }
 
-    public synchronized static Throwable getUpgradeError(){
+    public synchronized static Throwable getUpgradeError() {
         return UPGRADE_THROWABLE;
     }
 
-    public synchronized static float getUpgradeProcess(){
+    public synchronized static float getUpgradeProcess() {
         return UPGRADE_PROCESS;
     }
 
     public synchronized static void upgrade(UpgradeOptions options) {
         try {
-            if (UPGRADE_STATUS == STATUS_RUNNING ||UPGRADE_STATUS == STATUS_COMPLETE ) {
+            if (UPGRADE_STATUS == STATUS_RUNNING || UPGRADE_STATUS == STATUS_COMPLETE) {
                 return;
             }
             UPGRADE_OPTIONS = options;
@@ -118,13 +120,14 @@ public class WebViewUpgrade {
 
         private final Handler handler;
         private Context context;
-        private String apkUrl;
-        private String packageName;
-        private String versionName;
-        private String apkPath;
-        private String soLibDir;
 
-        private String soLibInstallCompleteKey;
+        private String apkPathKey;
+
+        private String libsPathKey;
+
+        private String apkPath;
+        private String libsDir;
+
 
         private SharedPreferences sharedPreferences;
 
@@ -136,43 +139,37 @@ public class WebViewUpgrade {
         public void run() {
             try {
                 UpgradeOptions options = UPGRADE_OPTIONS;
-                DownloaderSink downloaderSink = options.downloaderSink;
+                DownloadSink downloaderSink = options.downloaderSink;
                 context = options.context;
-                apkUrl = options.url;
-                packageName = options.packageName;
-                versionName = options.versionName;
-                apkPath = new File(context.getFilesDir(),
-                        UPGRADE_DIRECTORY
-                                + "/" + packageName
-                                + "/" + versionName
-                                + "/base.apk").getAbsolutePath();
-
-                soLibDir = new File(context.getFilesDir(),
-                        UPGRADE_DIRECTORY
-                                + "/" + packageName
-                                + "/" + versionName
-                                + "/libs").getAbsolutePath();
-
+                String apkUrl = options.url;
+                String md5 = Md5Utils.getMd5(apkUrl);
+                if (TextUtils.isEmpty(md5)) {
+                    throw new RuntimeException("get url md5 is empty, url is " + apkUrl);
+                }
+                apkPathKey = md5 + "_apk";
+                libsPathKey = md5 + "_libs";
                 sharedPreferences = context
                         .getSharedPreferences(
                                 UPGRADE_DIRECTORY,
                                 Context.MODE_PRIVATE);
+                apkPath = sharedPreferences
+                        .getString(apkPathKey, null);
+                libsDir = sharedPreferences
+                        .getString(libsPathKey, null);
 
-                soLibInstallCompleteKey = packageName + ":" + versionName;
-
-                File soDir = new File(soLibDir);
-                if (!soDir.exists()) {
-                    soDir.mkdirs();
-                }
-
-                boolean installComplete = sharedPreferences
-                        .getBoolean(soLibInstallCompleteKey, false);
-                if (installComplete) {
+                if (!TextUtils.isEmpty(apkPath)
+                        && new File(apkPath).exists() &&
+                        !TextUtils.isEmpty(libsDir)
+                        && new File(libsDir).exists()) {
                     upgradeWebView();
                 } else {
-                    DownloadAction downloadAction = downloaderSink.createDownload(apkUrl, apkPath);
+                    String downloadPath = new File(context.getFilesDir(),
+                            UPGRADE_DIRECTORY
+                                    + "/tmp/" + md5 + ".download").getAbsolutePath();
+                    DownloadAction downloadAction = downloaderSink.createDownload(apkUrl, downloadPath);
                     if (downloadAction.isCompleted()) {
-                        extractNativeLibrary();
+                        installApk(downloadPath);
+                        downloadAction.delete();
                         upgradeWebView();
                     } else {
                         downloadAction.addCallback(new DownloadAction.Callback() {
@@ -181,9 +178,10 @@ public class WebViewUpgrade {
                             public void onComplete(String path) {
                                 handler.post(() -> {
                                     try {
-                                        extractNativeLibrary();
+                                        installApk(path);
+                                        downloadAction.delete();
                                         upgradeWebView();
-                                    }catch (Throwable throwable){
+                                    } catch (Throwable throwable) {
                                         callErrorCallback(throwable);
                                         handler.getLooper().quit();
                                     }
@@ -210,30 +208,54 @@ public class WebViewUpgrade {
             }
         }
 
-        private void extractNativeLibrary() {
-            callProcessCallback(0.92f);
-            ApkUtils.extractNativeLibrary(apkPath, soLibDir);
-            callProcessCallback(0.94f);
-            sharedPreferences
-                    .edit()
-                    .putBoolean(soLibInstallCompleteKey, true)
-                    .commit();
-        }
 
         private void upgradeWebView() {
             callProcessCallback(0.95f);
             replaceWebViewProvider(context,
-                    packageName,
-                    versionName,
                     apkPath,
-                    soLibDir);
+                    libsDir);
             handler.getLooper().quit();
+        }
+
+        private void installApk(String downloadFilePath) {
+            File downloadFile = new File(downloadFilePath);
+            File downloadDirectory = downloadFile.getParentFile();
+            String downloadName = downloadFile.getName();
+            int dotIndex = downloadName.indexOf(".");
+            String tempApkPath;
+            if (dotIndex >= 0) {
+                tempApkPath = new File(downloadDirectory, downloadName.substring(0, dotIndex) + ".apk").getAbsolutePath();
+            } else {
+                tempApkPath = new File(downloadDirectory, downloadName + ".apk").getAbsolutePath();
+            }
+            PackageInfo packageInfo = ApkUtils.extractApk(context, downloadFilePath, tempApkPath);
+            callProcessCallback(0.92f);
+
+
+
+            apkPath = new File(context.getFilesDir(),
+                    UPGRADE_DIRECTORY
+                            + "/" + packageInfo.packageName + "/" + packageInfo.versionName + ".apk").getAbsolutePath();
+            libsDir = new File(context.getFilesDir(),
+                    UPGRADE_DIRECTORY
+                            + "/" + packageInfo.packageName + "/" + packageInfo.versionName + "/libs").getAbsolutePath();
+
+            FileUtils.moveFile(new File(tempApkPath),new File(apkPath));
+            ApkUtils.extractNativeLibrary(apkPath, libsDir);
+            callProcessCallback(0.94f);
+            sharedPreferences
+                    .edit()
+                    .putString(apkPathKey, apkPath)
+                    .commit();
+            sharedPreferences
+                    .edit()
+                    .putString(libsPathKey, libsDir)
+                    .commit();
         }
     }
 
+
     private static void replaceWebViewProvider(Context context,
-                                               String packageName,
-                                               String versionName,
                                                String apkPath,
                                                String soLibDir) {
         PackageManagerHook managerHook = null;
@@ -243,21 +265,8 @@ public class WebViewUpgrade {
             PackageInfo packageInfo = context.getPackageManager()
                     .getPackageArchiveInfo(apkPath, 0);
 
-
             if (packageInfo == null) {
                 throw new NullPointerException("path: " + apkPath + " is not apk");
-            }
-            if (!Objects.equals(packageInfo.packageName, packageName)) {
-                throw new IllegalArgumentException("packageName:"
-                        + packageInfo.packageName
-                        + " in the options is different from packageName:"
-                        + packageName + " in the apk");
-            }
-            if (!Objects.equals(packageInfo.versionName, versionName)) {
-                throw new IllegalArgumentException("versionName:"
-                        + packageInfo.versionName
-                        + " in the options is different from versionName:"
-                        + versionName + " in the apk");
             }
 
             int sdkVersion = Build.VERSION.SDK_INT;
@@ -268,10 +277,8 @@ public class WebViewUpgrade {
                     throw new RuntimeException("The current system version " + sdkVersion + " is smaller than the minimum version " + applicationInfo.minSdkVersion + "required by the apk  " + apkPath);
                 }
             }
-
-            checkWebView();
-            managerHook = new PackageManagerHook(context, packageName, apkPath, soLibDir);
-            updateServiceHook = new WebViewUpdateServiceHook(context, packageName);
+            managerHook = new PackageManagerHook(context, packageInfo.packageName, apkPath, soLibDir);
+            updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
             managerHook.hook();
             callProcessCallback(0.97f);
             updateServiceHook.hook();
@@ -282,9 +289,16 @@ public class WebViewUpgrade {
             AtomicReference<Throwable> throwableReference = new AtomicReference<>(null);
             MAIN_HANDLER.post(() -> {
                 try {
-                    loadSystemWebViewPackage();
+                    synchronized (WebViewUpgrade.class) {
+                        if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
+                            SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
+                        }
+                    }
                     checkWebView();
                     new WebView(context);
+                    synchronized (WebViewUpgrade.class) {
+                        UPGRADE_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
+                    }
                 } catch (Throwable throwable) {
                     throwableReference.set(throwable);
                 } finally {
@@ -348,7 +362,7 @@ public class WebViewUpgrade {
     }
 
     private static void callProcessCallback(float percent) {
-        synchronized (WebViewUpgrade.class){
+        synchronized (WebViewUpgrade.class) {
             UPGRADE_PROCESS = percent;
         }
         runInMainThread(() -> {
@@ -383,52 +397,46 @@ public class WebViewUpgrade {
     }
 
     public synchronized static String getSystemWebViewPackageName() {
-        if (SYSTEM_WEB_VIEW_PACKAGE_NAME != null) {
-            return SYSTEM_WEB_VIEW_PACKAGE_NAME;
+        if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
+            SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
         }
-        loadSystemWebViewPackage();
-        return SYSTEM_WEB_VIEW_PACKAGE_NAME;
+        return SYSTEM_WEB_VIEW_PACKAGE_INFO != null ? SYSTEM_WEB_VIEW_PACKAGE_INFO.packageName : null;
     }
 
     public synchronized static String getSystemWebViewPackageVersion() {
-        if (SYSTEM_WEB_VIEW_PACKAGE_VERSION != null) {
-            return SYSTEM_WEB_VIEW_PACKAGE_VERSION;
+        if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
+            SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
         }
-        loadSystemWebViewPackage();
-        return SYSTEM_WEB_VIEW_PACKAGE_VERSION;
+        return SYSTEM_WEB_VIEW_PACKAGE_INFO != null ? SYSTEM_WEB_VIEW_PACKAGE_INFO.versionName : null;
     }
 
     public synchronized static String getUpgradeWebViewPackageName() {
-        return UPGRADE_OPTIONS != null ? UPGRADE_OPTIONS.packageName : null;
+        return UPGRADE_WEB_VIEW_PACKAGE_INFO != null ? UPGRADE_WEB_VIEW_PACKAGE_INFO.packageName : null;
     }
 
     public synchronized static String getUpgradeWebViewVersion() {
-        return UPGRADE_OPTIONS != null ? UPGRADE_OPTIONS.versionName : null;
+        return UPGRADE_WEB_VIEW_PACKAGE_INFO != null ? UPGRADE_WEB_VIEW_PACKAGE_INFO.versionName : null;
     }
 
-    private static void loadSystemWebViewPackage() {
+    private static PackageInfo loadCurrentWebViewPackageInfo() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
-                PackageInfo packageInfo = WebView.getCurrentWebViewPackage();
-                SYSTEM_WEB_VIEW_PACKAGE_NAME = packageInfo.packageName;
-                SYSTEM_WEB_VIEW_PACKAGE_VERSION = packageInfo.versionName;
+                return WebView.getCurrentWebViewPackage();
             } catch (Throwable ignore) {
 
             }
         }
-        if (SYSTEM_WEB_VIEW_PACKAGE_NAME == null) {
-            try {
-                IServiceManager serviceManager = RuntimeAccess.staticAccess(IServiceManager.class);
-                IBinder binder = serviceManager.getService(IWebViewUpdateService.SERVICE);
-                IWebViewUpdateService service = RuntimeAccess.staticAccess(IWebViewUpdateService.class);
-                IInterface iInterface = service.asInterface(binder);
-                service = RuntimeAccess.objectAccess(IWebViewUpdateService.class, iInterface);
-                PackageInfo packageInfo = service.getCurrentWebViewPackage();
-                SYSTEM_WEB_VIEW_PACKAGE_NAME = packageInfo.packageName;
-                SYSTEM_WEB_VIEW_PACKAGE_VERSION = packageInfo.versionName;
-            } catch (Throwable ignore) {
-            }
+        try {
+            IServiceManager serviceManager = RuntimeAccess.staticAccess(IServiceManager.class);
+            IBinder binder = serviceManager.getService(IWebViewUpdateService.SERVICE);
+            IWebViewUpdateService service = RuntimeAccess.staticAccess(IWebViewUpdateService.class);
+            IInterface iInterface = service.asInterface(binder);
+            service = RuntimeAccess.objectAccess(IWebViewUpdateService.class, iInterface);
+            PackageInfo packageInfo = service.getCurrentWebViewPackage();
+            return packageInfo;
+        } catch (Throwable ignore) {
         }
+        return null;
     }
 
 }

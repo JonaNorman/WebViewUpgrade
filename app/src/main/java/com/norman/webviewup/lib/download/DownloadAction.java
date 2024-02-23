@@ -8,6 +8,8 @@ public interface DownloadAction {
 
     void stop();
 
+    void delete();
+
     boolean isCompleted();
 
     boolean isProcessing();

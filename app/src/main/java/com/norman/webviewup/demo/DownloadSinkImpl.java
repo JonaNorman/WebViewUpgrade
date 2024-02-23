@@ -9,13 +9,14 @@ import com.arialyy.aria.core.download.DownloadTaskListener;
 import com.arialyy.aria.core.inf.IEntity;
 import com.arialyy.aria.core.task.DownloadTask;
 import com.norman.webviewup.lib.download.DownloadAction;
-import com.norman.webviewup.lib.download.DownloaderSink;
+import com.norman.webviewup.lib.download.DownloadSink;
+import com.norman.webviewup.lib.util.FileUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class DownloadSinkImpl implements DownloaderSink {
+public class DownloadSinkImpl implements DownloadSink {
 
     private final List<DownloadActionImpl> downloadActionList = new ArrayList<>();
 
@@ -89,6 +90,7 @@ public class DownloadSinkImpl implements DownloaderSink {
             }
             if (downloadEntity == null ||
                     downloadEntity.getState() == IEntity.STATE_CANCEL) {
+                FileUtils.makeDirectory(path);
                 taskId = downloadReceiver
                         .load(url)
                         .setFilePath(path)
@@ -97,7 +99,7 @@ public class DownloadSinkImpl implements DownloaderSink {
                         .create();
                 downloadEntity = downloadReceiver.getDownloadEntity(taskId);
             } else if (downloadEntity.getState() == IEntity.STATE_WAIT
-                    ||downloadEntity.getState() == IEntity.STATE_OTHER
+                    || downloadEntity.getState() == IEntity.STATE_OTHER
                     || downloadEntity.getState() == IEntity.STATE_FAIL
                     || downloadEntity.getState() == IEntity.STATE_STOP) {
                 downloadReceiver
@@ -130,6 +132,20 @@ public class DownloadSinkImpl implements DownloaderSink {
         }
 
         @Override
+        public synchronized void delete() {
+            if (downloadEntity == null) {
+                return;
+            }
+            if (downloadEntity.getState() != IEntity.STATE_CANCEL) {
+                downloadReceiver
+                        .load(taskId)
+                        .ignoreCheckPermissions()
+                        .cancel(true);
+                downloadEntity = null;
+            }
+        }
+
+        @Override
         public synchronized boolean isCompleted() {
             if (downloadEntity == null) {
                 return false;
@@ -154,7 +170,7 @@ public class DownloadSinkImpl implements DownloaderSink {
 
         @Override
         public synchronized void addCallback(Callback callback) {
-            if (callbackList.contains(callback)){
+            if (callbackList.contains(callback)) {
                 return;
             }
             callbackList.add(callback);
@@ -162,7 +178,7 @@ public class DownloadSinkImpl implements DownloaderSink {
 
         @Override
         public synchronized void removeCallback(Callback callback) {
-            if (!callbackList.contains(callback)){
+            if (!callbackList.contains(callback)) {
                 return;
             }
             callbackList.remove(callback);
@@ -186,14 +202,14 @@ public class DownloadSinkImpl implements DownloaderSink {
         @Override
         public synchronized void onTaskResume(DownloadTask task) {
             for (Callback callback : callbackList) {
-                callback.onStart();;
+                callback.onStart();
             }
         }
 
         @Override
         public synchronized void onTaskStart(DownloadTask task) {
             for (Callback callback : callbackList) {
-                callback.onStart();;
+                callback.onStart();
             }
         }
 
@@ -205,7 +221,8 @@ public class DownloadSinkImpl implements DownloaderSink {
         @Override
         public synchronized void onTaskCancel(DownloadTask task) {
             downloadEntity = task.getDownloadEntity();
-            if (restart){
+            if (restart) {
+                FileUtils.makeDirectory(path);
                 taskId = downloadReceiver
                         .load(url)
                         .setFilePath(path)
@@ -221,7 +238,7 @@ public class DownloadSinkImpl implements DownloaderSink {
         @Override
         public synchronized void onTaskFail(DownloadTask task, Exception e) {
             for (Callback callback : callbackList) {
-                callback.onFail(e);;
+                callback.onFail(e);
             }
         }
 

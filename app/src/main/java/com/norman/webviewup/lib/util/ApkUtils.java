@@ -1,5 +1,7 @@
 package com.norman.webviewup.lib.util;
 
+import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.os.Build;
 import android.text.TextUtils;
 
@@ -58,45 +60,9 @@ public class ApkUtils {
                 List<ZipEntry> entryList = soLibEntryMap.get(abi);
                 if (entryList == null) continue;
                 for (ZipEntry entry : entryList) {
-                    byte[] buffer = new byte[8192];
-                    InputStream inputStream = null;
-                    OutputStream outputStream = null;
-                    BufferedInputStream bufferedInput = null;
-                    BufferedOutputStream bufferedOutput = null;
-                    try {
-                        inputStream = zipFile.getInputStream(entry);
-                        String[] split = entry.getName().split("/");
-                        File targetFile = new File(soDir, abi + "/" + split[split.length - 1]);
-                        if (!targetFile.exists()) {
-                            File fileParentDir = targetFile.getParentFile();
-                            if (fileParentDir != null && !fileParentDir.exists()) {
-                                fileParentDir.mkdirs();
-                            }
-                            targetFile.createNewFile();
-                        }
-                        outputStream = new FileOutputStream(targetFile);
-                        bufferedInput = new BufferedInputStream(inputStream);
-                        bufferedOutput = new BufferedOutputStream(outputStream);
-                        int count;
-                        while ((count = bufferedInput.read(buffer)) > 0) {
-                            bufferedOutput.write(buffer, 0, count);
-                        }
-                        bufferedOutput.flush();
-                    } finally {
-                        if (bufferedOutput != null) {
-                            bufferedOutput.close();
-                        }
-                        if (outputStream != null) {
-                            outputStream.close();
-                        }
-                        if (bufferedInput != null) {
-                            bufferedInput.close();
-                        }
-                        if (inputStream != null) {
-                            inputStream.close();
-                        }
-                    }
-
+                    String[] split = entry.getName().split("/");
+                    File targetFile = new File(soDir, abi + "/" + split[split.length - 1]);
+                    FileUtils.copyFile(zipFile.getInputStream(entry), targetFile, true);
                 }
             }
 
@@ -111,6 +77,41 @@ public class ApkUtils {
 
                 }
             }
+        }
+    }
+
+    public static PackageInfo extractApk(Context context,
+                                  String filePath,
+                                  String apkPath) {
+        PackageInfo packageInfo = null;
+        try {
+            packageInfo = context.getPackageManager().getPackageArchiveInfo(filePath, 0);
+        } catch (Throwable ignore) {
+
+        }
+        if (packageInfo == null) {
+            try (ZipFile zipFile = new ZipFile(filePath)) {
+                Enumeration<? extends ZipEntry> entries = zipFile.entries();
+                while (entries.hasMoreElements()) {
+                    ZipEntry entry = entries.nextElement();
+                    String entryName = entry.getName();
+                    if (entryName.endsWith(".apk")) {
+                        FileUtils.copyFile(zipFile.getInputStream(entry), new File(apkPath), true);
+                        packageInfo = context.getPackageManager().getPackageArchiveInfo(apkPath, 0);
+                        break;
+                    }
+                }
+
+            } catch (IOException throwable) {
+                throw new RuntimeException(throwable);
+            }
+        }else {
+            FileUtils.copyFile(filePath, apkPath);
+        }
+        if (packageInfo == null) {
+            throw new RuntimeException("path:" + filePath + " not exist apk");
+        } else {
+            return packageInfo;
         }
     }
 }
