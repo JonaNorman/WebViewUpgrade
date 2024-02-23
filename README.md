@@ -1,64 +1,63 @@
 # WebViewUpgrade
+简体中文 | [English](./README-EN.md)
 
-English | [简体中文](./README-ZH.md)
+这个库实现了Android免安装升级WebView内核的功能。
 
-This library implements the functionality of upgrading the WebView kernel on Android without installation.
+Android5.0以后WebView升级需要去Google Play安装APK，就算安装了以后也不一定能行，像华为、Amazon等特殊机型WebView的Chromium版本一般比较低，只能用它自己的WebView无法用Google的WebView。
 
-After Android 5.0, upgrading WebView requires installing an APK from Google Play, and even after installation, it may not work as expected. For special device models like Huawei and Amazon, the Chromium version of WebView is generally lower, making it impossible to use Google's WebView instead of the device's own WebView.
-
-I encountered a situation on Huawei devices where H265 video playback was not possible due to the Chromium version of the WebView kernel being lower than 107. To address this issue, H265 playback can be implemented using JavaScript, but this approach may lead to performance issues. At this point, I wondered if WebView could utilize the APK within the application as its kernel. The image below shows the before and after effects of upgrading the WebView kernel:
+我就遇到了华为机上因为WebView内核的Chromium版本低于107无法播放H265视频的情况，为了解决上述问题可以用JS实现H265播放，但是会比较卡，这个时候我就想能不能让WebView用应用内的APK作为内核，下图是升级WebView内核的前后效果对比
 
 ![preview](preview/preview.gif)
 
-Before the upgrade, the WebView kernel package name on Huawei devices was `com.huawei.webview`, with a version of 14.0.0.331. The Chromium version in the UserAgent was actually 99.0.4844.88, as shown in the image below, which does not support H265 playback as it is less than 107:
+升级前在华为机上的系统WebView内核包名是`com.huawei.webview`，版本是14.0.0.331，UserAgent中的Chromium实际版本是99.0.4844.88,如下图所示小于107不支持H265播放
 
 ![webview_can_not_play_h265](preview/webview_can_not_play_h265.jpg)
 
-After successfully upgrading the kernel using the code provided below, H265 video playback becomes possible:
+把WebView内核的包名、版本、包地址传到以下代码升级内核成功后就可以播放H265视频了
 
 ![upgrade_code.png](preview/upgrade_code.png)
 
-The WebView kernel selection page looks like the image below:
+WebView内核选择页面如下图所示
 
 ![choose_webview.jpg](preview/choose_webview.jpg)
 
-After a successful upgrade, the package name of the WebView kernel changes to `com.google.android.webview`, and the Chromium version in the UserAgent also changes to 122.0.6261.64:
+升级成功的WebView内涵的包名变成了`com.google.android.webview`，UserAgent中的Chromium实际版本也变成了122.0.6261.64
 
 ![webview_can_play_h265.png](preview/webview_can_play_h265.png)
 
-## Compatibility
+# 兼容性
 
-Android devices vary greatly. The following features and device models have been tested. Contributions through issue submissions and Merge Requests to this project are welcomed.
+Android的设备五花八门，已测试以下功能和机型，欢迎大家提issue和Merge Request加入到这个项目中来
 
-### Feature Characteristics
-
-| WebView Package Name         | System Version      |
-|:-----------------------------| ------------------- |
+## 功能特性
+| WebView包名    | 系统版本 |
+|:-------------| ----- |
 |com.google.android.webview     | 122.0.6261.64  |
 | com.android.webview       | 113.0.5672.136      |
 | com.huawei.webview   | 14.0.0.331     |
 | com.android.chrome | 122.0.6261.43     |
 | com.amazon.webview.chromium | 118-5993-tv.5993.155.51   |
 
-### Device Models
+## 机型
+| 厂商         | 系统版本 |
+| :----------- | -------- |
+| 华为Mate30   | 12       |
+| 小米10       | 11       |
+| VIVO NEX A   | 10       |
+| OPPO FIND X5 | 14       |
 
-| Manufacturer  | System Version |
-| :------------ | -------------- |
-| Huawei Mate30 | 12             |
-| Xiaomi 10     | 11             |
-| VIVO NEX A    | 10             |
-| OPPO FIND X5  | 14             |
+**待开发功能**
 
-**Upcoming Features**
+- [ ] 多进程
+- [ ] 动态切换
 
-- [ ] Multi-process
-- [ ] Dynamic Switching
 
-# ⭐ Star History
+# ⭐ star历史
 
 ![Star History Chart](https://api.star-history.com/svg?repos=JonaNorman/WebViewUpgrade&type=Date)
 
-# Special Thanks
+
+# 特别感谢
 
 | Stargazers                                                                                                 | Forkers                                                                                                                 |
 |---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
