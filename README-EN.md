@@ -12,19 +12,19 @@ I encountered a situation on Huawei devices where H265 video playback was not po
 
 Before the upgrade, the WebView kernel package name on Huawei devices was `com.huawei.webview`, with a version of 14.0.0.331. The Chromium version in the UserAgent was actually 99.0.4844.88, as shown in the image below, which does not support H265 playback as it is less than 107:
 
-![webview_can_not_play_h265](preview/webview_can_not_play_h265.jpg)
+<img src="/preview/webview_can_not_play_h265.jpg" width="400px">
 
 After successfully upgrading the kernel using the code provided below, H265 video playback becomes possible:
 
-![upgrade_code.png](preview/upgrade_code.png)
+<img src="/preview/upgrade_code.png" width="400px">
 
 The WebView kernel selection page looks like the image below:
 
-![choose_webview.jpg](preview/choose_webview.jpg)
+<img src="/preview/choose_webview.jpg" width="400px">
 
 After a successful upgrade, the package name of the WebView kernel changes to `com.google.android.webview`, and the Chromium version in the UserAgent also changes to 122.0.6261.64:
 
-![webview_can_play_h265.png](preview/webview_can_play_h265.png)
+<img src="/preview/webview_can_play_h265.png" width="400px">
 
 ## Compatibility
 
