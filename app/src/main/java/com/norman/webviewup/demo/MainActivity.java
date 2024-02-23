@@ -80,13 +80,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         findViewById(R.id.upgradeButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (WebViewUpgrade.isProcessing()) {
-                    Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_LONG).show();
-                } else if (WebViewUpgrade.isCompleted()) {
-                    Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
-                } else {
-                    showChooseWebViewDialog();
-                }
+                showChooseWebViewDialog();
             }
         });
 
@@ -136,18 +130,24 @@ public class MainActivity extends Activity implements UpgradeCallback {
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                UpgradeInfo upgradeInfo = UPGRADE_PACKAGE_LIST.get(which);
-                selectUpgradeInfo = upgradeInfo;
-                UpgradeOptions upgradeOptions = new UpgradeOptions
-                        .Builder(getApplicationContext(),
-                        upgradeInfo.packageName,
-                        upgradeInfo.url,
-                        upgradeInfo.versionName,
-                        new DownloadSinkImpl())
-                        .build();
-                WebViewUpgrade.upgrade(upgradeOptions);
-                updateUpgradeWebViewPackageInfo();
-                updateUpgradeWebViewStatus();
+                if (WebViewUpgrade.isProcessing()) {
+                    Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_LONG).show();
+                } else if (WebViewUpgrade.isCompleted()) {
+                    Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
+                } else {
+                    UpgradeInfo upgradeInfo = UPGRADE_PACKAGE_LIST.get(which);
+                    selectUpgradeInfo = upgradeInfo;
+                    UpgradeOptions upgradeOptions = new UpgradeOptions
+                            .Builder(getApplicationContext(),
+                            upgradeInfo.packageName,
+                            upgradeInfo.url,
+                            upgradeInfo.versionName,
+                            new DownloadSinkImpl())
+                            .build();
+                    WebViewUpgrade.upgrade(upgradeOptions);
+                    updateUpgradeWebViewPackageInfo();
+                    updateUpgradeWebViewStatus();
+                }
             }
         });
         AlertDialog dialog = builder.create();
