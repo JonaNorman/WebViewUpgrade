@@ -11,19 +11,19 @@ Android5.0以后WebView升级需要去Google Play安装APK，就算安装了以�
 
 升级前在华为机上的系统WebView内核包名是`com.huawei.webview`，版本是14.0.0.331，UserAgent中的Chromium实际版本是99.0.4844.88,如下图所示小于107不支持H265播放
 
-![webview_can_not_play_h265](preview/webview_can_not_play_h265.jpg)
+<img src="/preview/webview_can_not_play_h265.jpg" width="400px">
 
 把WebView内核的包名、版本、包地址传到以下代码升级内核成功后就可以播放H265视频了
 
-![upgrade_code.png](preview/upgrade_code.png)
+<img src="/preview/upgrade_code.png" width="400px">
 
 WebView内核选择页面如下图所示
 
-![choose_webview.jpg](preview/choose_webview.jpg)
+<img src="/preview/choose_webview.jpg" width="400px">
 
 升级成功的WebView内涵的包名变成了`com.google.android.webview`，UserAgent中的Chromium实际版本也变成了122.0.6261.64
 
-![webview_can_play_h265.png](preview/webview_can_play_h265.png)
+<img src="/preview/webview_can_play_h265.png" width="400px">
 
 # 兼容性
 
