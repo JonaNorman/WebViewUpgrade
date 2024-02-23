@@ -28,11 +28,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
             new PackageInfo(
                     "com.google.android.webview",
                     "122.0.6261.64",
-                    "https://gitee.com/JonaNorman/webviewapk/raw/master/com.google.android.webview_122.0.6261.64-626106400_armeabi-v7a.apk"),
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64(armeabi-v7a).apk"),
             new PackageInfo(
                     "com.android.webview",
                     "113.0.5672.136",
-                    "https://gitee.com/JonaNorman/webviewapk/raw/master/com.android.webview_113.0.5672.136_armeabi-v7a.apk"),
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.136(armeabi-v7a).apk"),
             new PackageInfo(
                     "com.huawei.webview",
                     "14.0.0.331",
