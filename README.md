@@ -1,20 +1,20 @@
 # WebViewUpgrade
 
-English | [简体中文](./README-ZH.md)
+简体中文 | [English](./README.md)
 
 This library implements the functionality of upgrading the WebView kernel on Android without installation.
 
-After Android 5.0, upgrading WebView requires installing an APK. In situations where Google Play is not available, it's impossible to find the update package. Even if found, special device models like Huawei and Amazon typically have lower versions of WebView's Chromium, which cannot be replaced with Google's WebView.
+After Android 5.0, upgrading WebView requires installing an APK from Google Play, and even after installation, it may not work as expected. For special device models like Huawei and Amazon, the Chromium version of WebView is generally lower, making it impossible to use Google's WebView instead of the device's own WebView.
 
-I encountered a situation where WebView couldn't play H265 videos on a Huawei device due to the Chromium version being lower than 107. To resolve this issue, the conventional approach is usually to implement H265 playback using JavaScript, but this can be sluggish. At this point, I wondered if WebView could use the APK within the application as its kernel. The image below shows the before and after effects of upgrading the WebView kernel:
+I encountered a situation on Huawei devices where H265 video playback was not possible due to the Chromium version of the WebView kernel being lower than 107. To address this issue, H265 playback can be implemented using JavaScript, but this approach may lead to performance issues. At this point, I wondered if WebView could utilize the APK within the application as its kernel. The image below shows the before and after effects of upgrading the WebView kernel:
 
 ![preview](preview/preview.gif)
 
-It's apparent that on Huawei devices, the WebView kernel package name is `com.huawei.webview` with a version of 14.0.0.331. The Chromium version in the UserAgent is actually 99.0.4844.88, as shown in the image below. It does not support H265 playback as it is less than 107:
+Before the upgrade, the WebView kernel package name on Huawei devices was `com.huawei.webview`, with a version of 14.0.0.331. The Chromium version in the UserAgent was actually 99.0.4844.88, as shown in the image below, which does not support H265 playback as it is less than 107:
 
 ![webview_can_not_play_h265](preview/webview_can_not_play_h265.jpg)
 
-After successfully upgrading the kernel using the code provided below, WebView can play H265 videos:
+After successfully upgrading the kernel using the code provided below, H265 video playback becomes possible:
 
 ![upgrade_code.png](preview/upgrade_code.png)
 
@@ -22,23 +22,23 @@ The WebView kernel selection page looks like the image below:
 
 ![choose_webview.jpg](preview/choose_webview.jpg)
 
-After successful upgrade, the WebView package name changes to `com.google.android.webview`, and the Chromium version in the UserAgent becomes 122.0.6261.64:
+After a successful upgrade, the package name of the WebView kernel changes to `com.google.android.webview`, and the Chromium version in the UserAgent also changes to 122.0.6261.64:
 
 ![webview_can_play_h265.png](preview/webview_can_play_h265.png)
 
 ## Compatibility
 
-Android devices vary greatly. The following features and device models have been tested. Contributions through issue submission and Merge Requests to this project are welcomed.
+Android devices vary greatly. The following features and device models have been tested. Contributions through issue submissions and Merge Requests to this project are welcomed.
 
 ### Feature Characteristics
 
 | WebView Package Name         | System Version      |
 |:-----------------------------| ------------------- |
-| com.google.android.webview  | 122.0.6261.64       |
-| com.android.webview         | 113.0.5672.136      |
-| com.huawei.webview          | 14.0.0.331          |
-| com.android.chrome          | 122.0.6261.43       |
-| com.amazon.webview.chromium | 118-5993-tv.5993.155.51 |
+|com.google.android.webview     | 122.0.6261.64  |
+| com.android.webview       | 113.0.5672.136      |
+| com.huawei.webview   | 14.0.0.331     |
+| com.android.chrome | 122.0.6261.43     |
+| com.amazon.webview.chromium | 118-5993-tv.5993.155.51   |
 
 ### Device Models
 
@@ -52,7 +52,7 @@ Android devices vary greatly. The following features and device models have been
 **Upcoming Features**
 
 - [ ] Multi-process
-- [ ] Dynamic Switch
+- [ ] Dynamic Switching
 
 # ⭐ Star History
 
