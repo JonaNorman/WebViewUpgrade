@@ -36,10 +36,18 @@ public class MainActivity extends Activity implements UpgradeCallback {
             new UpgradeInfo(
                     "com.huawei.webview",
                     "14.0.0.331",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip")
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip"),
+            new UpgradeInfo(
+                    "com.android.chrome",
+                    "122.0.6261.43",
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.chrome_122.0.6261.64_armeabi-v7a.zip"),
+
+            new UpgradeInfo("com.amazon.webview.chromium",
+                    "118-5993-tv.5993.155.51",
+                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.amazon.webview.chromium_118-5993-tv.5993.155.51_armeabi-v7a.zip")
+
 
     );
-
 
 
     ProgressBar progressBar;
@@ -63,7 +71,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         upgradeWebViewPackageTextView = findViewById(R.id.upgradeWebViewPackageTextView);
         upgradeStatusTextView = findViewById(R.id.upgradeStatusTextView);
         upgradeErrorTextView = findViewById(R.id.upgradeErrorTextView);
-        upgradeProgressTextView =findViewById(R.id.upgradeProgressTextView);
+        upgradeProgressTextView = findViewById(R.id.upgradeProgressTextView);
         updateSystemWebViewPackageInfo();
         updateSystemWebViewPackageInfo();
         updateUpgradeWebViewStatus();
@@ -74,7 +82,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
             public void onClick(View v) {
                 if (WebViewUpgrade.isProcessing()) {
                     Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_LONG).show();
-                }  else if (WebViewUpgrade.isCompleted()) {
+                } else if (WebViewUpgrade.isCompleted()) {
                     Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
                     showChooseWebViewDialog();
@@ -161,15 +169,15 @@ public class MainActivity extends Activity implements UpgradeCallback {
     }
 
     private void updateUpgradeWebViewPackageInfo() {
-        String upgradeWebViewPackageName = selectUpgradeInfo!= null?selectUpgradeInfo.packageName:null;
-        String upgradeWebViewPackageVersion =  selectUpgradeInfo!= null?selectUpgradeInfo.versionName:null;
+        String upgradeWebViewPackageName = selectUpgradeInfo != null ? selectUpgradeInfo.packageName : null;
+        String upgradeWebViewPackageVersion = selectUpgradeInfo != null ? selectUpgradeInfo.versionName : null;
 
         String upgradeWebViewPackageInfo = "";
         if (!TextUtils.isEmpty(upgradeWebViewPackageName)
                 || !TextUtils.isEmpty(upgradeWebViewPackageVersion)) {
             upgradeWebViewPackageInfo = (!TextUtils.isEmpty(upgradeWebViewPackageName) ? upgradeWebViewPackageName : "unknown")
                     + ":" + (!TextUtils.isEmpty(upgradeWebViewPackageVersion) ? upgradeWebViewPackageVersion : "unknown");
-        }else {
+        } else {
             upgradeWebViewPackageInfo = "";
         }
         upgradeWebViewPackageTextView.setText(upgradeWebViewPackageInfo);
@@ -190,7 +198,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         }
         int process = (int) (WebViewUpgrade.getUpgradeProcess() * 100);
         progressBar.setProgress(process);
-        upgradeProgressTextView.setText(process+"%");
+        upgradeProgressTextView.setText(process + "%");
         Throwable throwable = WebViewUpgrade.getUpgradeError();
         if (throwable == null) {
             upgradeErrorTextView.setText("");

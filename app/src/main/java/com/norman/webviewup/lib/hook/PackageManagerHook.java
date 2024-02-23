@@ -73,6 +73,10 @@ public class PackageManagerHook extends BinderHook {
         protected PackageInfo getPackageInfo(String packageName, int flags) {
             if (packageName.equals(webViewPackageName)) {
                 PackageInfo packageInfo = context.getPackageManager().getPackageArchiveInfo(apkPath, flags);
+                if (packageInfo == null) {
+                    flags &=~ PackageManager.GET_SIGNATURES;
+                    packageInfo = context.getPackageManager().getPackageArchiveInfo(apkPath, flags);
+                }
                 boolean is64Bit = ProcessUtils.is64Bit();
                 String[] supportBitAbis = is64Bit ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS;
                 Arrays.sort(supportBitAbis, Collections.reverseOrder());

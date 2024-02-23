@@ -106,6 +106,7 @@ public class WebViewUpgrade {
             }
             UPGRADE_OPTIONS = options;
             UPGRADE_STATUS = STATUS_RUNNING;
+            UPGRADE_PROCESS = 0;
             UPGRADE_THROWABLE = null;
             HandlerThread upgradeThread = new HandlerThread("WebViewUpgrade");
             upgradeThread.start();
