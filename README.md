@@ -1,7 +1,7 @@
 # WebViewUpgrade
 简体中文 | [English](./README-EN.md)
 
-这个库实现了Android免安装升级WebView内核的功能。
+还在经受WebView差异化带来的兼容问题，还在为腾讯X5内核收费所困扰，这个库也许就能轻松解决这些问题，它实现了Android免安装升级WebView内核的功能。
 
 Android5.0以后WebView升级需要去Google Play安装APK，就算安装了以后也不一定能行，像华为、Amazon等特殊机型WebView的Chromium版本一般比较低，只能用它自己的WebView无法用Google的WebView。
 
@@ -50,6 +50,8 @@ Android的设备五花八门，已测试以下功能和机型，欢迎大家提i
 
 - [ ] 多进程
 - [ ] 动态切换
+
+原理介绍: [地址](https://juejin.cn/post/7340900764364472332#heading-4)
 
 
 # ⭐ star历史
