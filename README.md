@@ -27,7 +27,10 @@ WebView内核选择页面如下图所示
 
 # 兼容性
 
-Android的设备五花八门，已测试以下功能和机型，欢迎大家提issue和Merge Request加入到这个项目中来
+Android的设备五花八门，已测试以下功能和机型，欢迎大家提issue和Merge Request加入到这个项目中来，如果有疑惑，可以加这个群
+
+<img src="/preview/chat.jpg" width="300px">
+
 
 ## 功能特性
 | WebView包名    | 系统版本 |
