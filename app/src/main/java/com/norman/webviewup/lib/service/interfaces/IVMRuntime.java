@@ -6,11 +6,14 @@ import com.norman.webviewup.lib.reflect.annotation.Method;
 
 @ClassName("dalvik.system.VMRuntime")
 public interface IVMRuntime {
-    @Method(value = "getRuntime", type = Field.STATIC)
+    @Method(value = "getRuntime", type = Method.STATIC)
     Object getRuntime();
 
     @Method(value = "is64Bit")
     boolean is64Bit();
+
+    @Method(value = "getCurrentInstructionSet",type = Method.STATIC)
+    String getCurrentInstructionSet();
 
 
 }

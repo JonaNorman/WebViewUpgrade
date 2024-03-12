@@ -17,37 +17,59 @@ import androidx.appcompat.app.AlertDialog;
 import com.norman.webviewup.lib.UpgradeCallback;
 import com.norman.webviewup.lib.UpgradeOptions;
 import com.norman.webviewup.lib.WebViewUpgrade;
+import com.norman.webviewup.lib.util.ProcessUtils;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class MainActivity extends Activity implements UpgradeCallback {
 
-    private static final List<UpgradeInfo> UPGRADE_PACKAGE_LIST = Arrays.asList(
-            new UpgradeInfo(
-                    "com.google.android.webview",
-                    "122.0.6261.64",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_armeabi-v7a.zip"),
-            new UpgradeInfo(
-                    "com.android.webview",
-                    "113.0.5672.136",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.13_armeabi-v7a.zip"),
-            new UpgradeInfo(
-                    "com.huawei.webview",
-                    "14.0.0.331",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip"),
-            new UpgradeInfo(
-                    "com.android.chrome",
-                    "122.0.6261.43",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.chrome_122.0.6261.64_armeabi-v7a.zip"),
 
-            new UpgradeInfo("com.amazon.webview.chromium",
-                    "118-5993-tv.5993.155.51",
-                    "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.amazon.webview.chromium_118-5993-tv.5993.155.51_armeabi-v7a.zip")
+    private static final Map<String,List<UpgradeInfo>> UPGRADE_PACKAGE_MAP = new HashMap<>();
+    static {
+        UPGRADE_PACKAGE_MAP.put("arm",Arrays.asList(
+                new UpgradeInfo(
+                        "com.google.android.webview",
+                        "122.0.6261.64",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_armeabi-v7a.zip"),
+                new UpgradeInfo(
+                        "com.android.webview",
+                        "113.0.5672.136",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.13_armeabi-v7a.zip"),
+                new UpgradeInfo(
+                        "com.huawei.webview",
+                        "14.0.0.331",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip"),
+                new UpgradeInfo(
+                        "com.android.chrome",
+                        "122.0.6261.43",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.chrome_122.0.6261.64_armeabi-v7a.zip"),
+
+                new UpgradeInfo("com.amazon.webview.chromium",
+                        "118-5993-tv.5993.155.51",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.amazon.webview.chromium_118-5993-tv.5993.155.51_armeabi-v7a.zip")
 
 
-    );
+        ));
+
+        UPGRADE_PACKAGE_MAP.put("arm64",Arrays.asList(
+                new UpgradeInfo(
+                        "com.huawei.webview",
+                        "14.0.0.331",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip")
+        ));
+
+        UPGRADE_PACKAGE_MAP.put("x86",Arrays.asList(
+                new UpgradeInfo(
+                        "com.google.android.webview",
+                        "122.0.6261.64",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_x86.zip")
+        ));
+
+    }
 
 
     ProgressBar progressBar;
@@ -115,6 +137,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
     @Override
     public void onUpgradeError(Throwable throwable) {
         Toast.makeText(getApplicationContext(), "webView upgrade fail", Toast.LENGTH_SHORT).show();
+        Log.v("MainActivity","message:" + throwable.getMessage() + "\nstackTrace:" + Log.getStackTraceString(throwable));
         updateUpgradeWebViewStatus();
     }
 
@@ -122,10 +145,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Choose WebView");
+        List<UpgradeInfo> upgradeInfoList = UPGRADE_PACKAGE_MAP.get(ProcessUtils.getCurrentInstruction());
 
-        String[] items = new String[UPGRADE_PACKAGE_LIST.size()];
+        String[] items = new String[upgradeInfoList.size()];
         for (int i = 0; i < items.length; i++) {
-            items[i] = UPGRADE_PACKAGE_LIST.get(i).title;
+            items[i] = upgradeInfoList.get(i).title;
         }
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
@@ -135,7 +159,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 } else if (WebViewUpgrade.isCompleted()) {
                     Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
-                    UpgradeInfo upgradeInfo = UPGRADE_PACKAGE_LIST.get(which);
+                    UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
                     selectUpgradeInfo = upgradeInfo;
                     UpgradeOptions upgradeOptions = new UpgradeOptions
                             .Builder(getApplicationContext(),

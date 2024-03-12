@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.service.binder.BinderHook;
 import com.norman.webviewup.lib.service.interfaces.IActivityThread;
+import com.norman.webviewup.lib.service.interfaces.IApplicationInfo;
 import com.norman.webviewup.lib.service.interfaces.IContextImpl;
 import com.norman.webviewup.lib.service.interfaces.IPackageManager;
 import com.norman.webviewup.lib.service.interfaces.IServiceManager;
@@ -81,11 +82,13 @@ public class PackageManagerHook extends BinderHook {
                 String[] supportBitAbis = is64Bit ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS;
                 Arrays.sort(supportBitAbis, Collections.reverseOrder());
                 File nativeLibraryDir = null;
+                String cpuAbi= null;
                 for (String supportBitAbi : supportBitAbis) {
                     File file = new File(soPath + "/" + supportBitAbi);
                     File[] childFile = file.listFiles();
                     if (childFile != null && childFile.length > 0) {
                         nativeLibraryDir = file;
+                        cpuAbi = supportBitAbi;
                         break;
                     }
                 }
@@ -93,6 +96,12 @@ public class PackageManagerHook extends BinderHook {
                     throw new NullPointerException("unable to find supported abis "
                             + Arrays.toString(supportBitAbis)
                             + " in apk " + apkPath);
+                }
+                try {
+                    IApplicationInfo iApplicationInfo = RuntimeAccess.objectAccess(IApplicationInfo.class,packageInfo.applicationInfo);
+                    iApplicationInfo.setPrimaryCpuAbi(cpuAbi);
+                }catch (Throwable ignore){
+
                 }
                 packageInfo.applicationInfo.nativeLibraryDir = nativeLibraryDir.getAbsolutePath();
                 if (TextUtils.isEmpty(packageInfo.applicationInfo.sourceDir)) {
