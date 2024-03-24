@@ -10,16 +10,18 @@ import com.arialyy.aria.core.download.DownloadTaskListener;
 import com.arialyy.aria.core.inf.IEntity;
 import com.arialyy.aria.core.task.DownloadTask;
 import com.norman.webviewup.lib.UpgradeDirectory;
-import com.norman.webviewup.lib.download.DownloadAction;
 import com.norman.webviewup.lib.source.WebViewPathSource;
 import com.norman.webviewup.lib.util.FileUtils;
 import com.norman.webviewup.lib.util.Md5Utils;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
 public class WebViewUrlSource extends WebViewPathSource implements DownloadTaskListener {
+
+    private final HashSet<DownloadProcessCallback> downloadProcessCallbackHashSet = new HashSet<>();
 
     private final String url;
 
@@ -63,7 +65,7 @@ public class WebViewUrlSource extends WebViewPathSource implements DownloadTaskL
 
     @Override
     protected void onPrepare() {
-        if (downloadEntity == null ||
+        if (!FileUtils.isNotEmptyFile(path) ||downloadEntity == null ||
                 downloadEntity.getState() == IEntity.STATE_CANCEL) {
             FileUtils.makeDirectory(path);
             taskId = downloadReceiver
@@ -83,7 +85,8 @@ public class WebViewUrlSource extends WebViewPathSource implements DownloadTaskL
                     .resume();
         } else if (downloadEntity.getState() == IEntity.STATE_COMPLETE) {
             success();
-        }
+        } //running
+
     }
     
 
@@ -125,23 +128,19 @@ public class WebViewUrlSource extends WebViewPathSource implements DownloadTaskL
 
     @Override
     public void onTaskFail(DownloadTask task, Exception e) {
-        for (DownloadAction.Callback callback : callbackList) {
-            callback.onFail(e);
-        }
+        error(e);
     }
 
     @Override
     public void onTaskComplete(DownloadTask task) {
-        for (DownloadAction.Callback callback : callbackList) {
-            callback.onComplete(task.getFilePath());
-        }
+       success();
     }
 
     @Override
     public void onTaskRunning(DownloadTask task) {
         float percent = task.getPercent() / 100.0f;
-        for (DownloadAction.Callback callback : callbackList) {
-            callback.onProcess(percent);
+        for (DownloadProcessCallback downloadProcessCallback : downloadProcessCallbackHashSet) {
+            downloadProcessCallback.onProcess(percent);
         }
     }
 
@@ -151,7 +150,11 @@ public class WebViewUrlSource extends WebViewPathSource implements DownloadTaskL
     }
 
     @Override
-    public String getPath() {
+    public synchronized String getPath() {
         return path;
+    }
+
+    public interface DownloadProcessCallback{
+        void onProcess(float percent);
     }
 }

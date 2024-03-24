@@ -20,6 +20,11 @@ public abstract class WebViewSource {
         return success;
     }
 
+    public synchronized final Throwable getError() {
+        return errorThrowable;
+    }
+
+
     public synchronized void prepare(OnPrepareCallback prepareCallback) {
         if (success) {
             prepareCallback.onPrepareSuccess(this);
