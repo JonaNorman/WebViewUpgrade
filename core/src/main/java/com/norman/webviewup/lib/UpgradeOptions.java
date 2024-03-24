@@ -15,13 +15,11 @@ public class UpgradeOptions {
 
 
     private UpgradeOptions(UpgradeOptions.Builder builder) {
-        this.downloaderSink = builder.downloaderSink;
         this.context = builder.context;
         this.url = builder.url;
     }
 
     public static class Builder {
-        DownloadSink downloaderSink;
         Application context;
         String url;
 

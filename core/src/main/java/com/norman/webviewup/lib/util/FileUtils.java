@@ -1,5 +1,7 @@
 package com.norman.webviewup.lib.util;
 
+import android.text.TextUtils;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -11,6 +13,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class FileUtils {
+
+    public static void delete(String path) {
+        delete(new File(path));
+    }
 
 
     public static void delete(File file) {
@@ -159,5 +165,40 @@ public class FileUtils {
             }
 
         }
+    }
+
+    public static boolean existDirectory(String path) {
+        if (TextUtils.isEmpty(path)) {
+            return false;
+        }
+        File file = new File(path);
+        return file.isDirectory() && file.exists();
+    }
+
+    public static boolean existFile(String path) {
+        if (TextUtils.isEmpty(path)) {
+            return false;
+        }
+        File file = new File(path);
+        return file.isFile() && file.exists();
+    }
+
+    public static boolean isNotEmptyFile(String path) {
+        if (TextUtils.isEmpty(path)) {
+            return false;
+        }
+        File file = new File(path);
+        return file.isFile() && file.exists() && file.length() != 0;
+    }
+
+    public static boolean createFile(File file){
+        if (!file.exists()){
+            try {
+               return file.createNewFile();
+            } catch (IOException ignore) {
+                return false;
+            }
+        }
+        return true;
     }
 }

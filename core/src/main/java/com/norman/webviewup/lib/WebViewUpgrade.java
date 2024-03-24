@@ -22,6 +22,7 @@ import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.service.interfaces.IServiceManager;
 import com.norman.webviewup.lib.service.interfaces.IWebViewFactory;
 import com.norman.webviewup.lib.service.interfaces.IWebViewUpdateService;
+import com.norman.webviewup.lib.source.WebViewFileSource;
 import com.norman.webviewup.lib.util.ApkUtils;
 import com.norman.webviewup.lib.util.FileUtils;
 import com.norman.webviewup.lib.util.Md5Utils;
@@ -440,4 +441,10 @@ public class WebViewUpgrade {
         return null;
     }
 
+    public  class FileCache {
+
+        public  static File getRootDirectory(Context context){
+            return context.getFilesDir()+""
+        }
+    }
 }
