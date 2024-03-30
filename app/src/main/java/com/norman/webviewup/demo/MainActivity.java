@@ -3,6 +3,7 @@ package com.norman.webviewup.demo;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -15,10 +16,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 
 import com.norman.webviewup.lib.UpgradeCallback;
-import com.norman.webviewup.lib.UpgradeOptions;
 import com.norman.webviewup.lib.WebViewUpgrade;
+import com.norman.webviewup.lib.source.download.UpgradeDownloadSource;
 import com.norman.webviewup.lib.util.ProcessUtils;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -28,9 +30,10 @@ import java.util.Map;
 public class MainActivity extends Activity implements UpgradeCallback {
 
 
-    private static final Map<String,List<UpgradeInfo>> UPGRADE_PACKAGE_MAP = new HashMap<>();
+    private static final Map<String, List<UpgradeInfo>> UPGRADE_PACKAGE_MAP = new HashMap<>();
+
     static {
-        UPGRADE_PACKAGE_MAP.put("arm",Arrays.asList(
+        UPGRADE_PACKAGE_MAP.put("arm", Arrays.asList(
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "122.0.6261.64",
@@ -55,14 +58,14 @@ public class MainActivity extends Activity implements UpgradeCallback {
 
         ));
 
-        UPGRADE_PACKAGE_MAP.put("arm64",Arrays.asList(
+        UPGRADE_PACKAGE_MAP.put("arm64", Arrays.asList(
                 new UpgradeInfo(
                         "com.huawei.webview",
                         "14.0.0.331",
                         "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip")
         ));
 
-        UPGRADE_PACKAGE_MAP.put("x86",Arrays.asList(
+        UPGRADE_PACKAGE_MAP.put("x86", Arrays.asList(
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "122.0.6261.64",
@@ -137,7 +140,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
     @Override
     public void onUpgradeError(Throwable throwable) {
         Toast.makeText(getApplicationContext(), "webView upgrade fail", Toast.LENGTH_SHORT).show();
-        Log.v("MainActivity","message:" + throwable.getMessage() + "\nstackTrace:" + Log.getStackTraceString(throwable));
+        Log.v("MainActivity", "message:" + throwable.getMessage() + "\nstackTrace:" + Log.getStackTraceString(throwable));
         updateUpgradeWebViewStatus();
     }
 
@@ -161,14 +164,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
                     selectUpgradeInfo = upgradeInfo;
-                    UpgradeOptions upgradeOptions = new UpgradeOptions
-                            .Builder(getApplicationContext(),
-                            upgradeInfo.packageName,
+                    UpgradeDownloadSource upgradeDownloadSource = new UpgradeDownloadSource(
+                            getApplicationContext(),
                             upgradeInfo.url,
-                            upgradeInfo.versionName,
-                            new DownloadSinkImpl())
-                            .build();
-                    WebViewUpgrade.upgrade(upgradeOptions);
+                            new File(getApplicationContext().getFilesDir(), upgradeInfo.packageName + "/" + upgradeInfo.versionName + ".apk")
+                    );
+                    WebViewUpgrade.upgrade(upgradeDownloadSource);
                     updateUpgradeWebViewPackageInfo();
                     updateUpgradeWebViewStatus();
                 }
@@ -215,8 +216,6 @@ public class MainActivity extends Activity implements UpgradeCallback {
             upgradeStatusTextView.setText("fail");
         } else if (WebViewUpgrade.isCompleted()) {
             upgradeStatusTextView.setText("complete");
-        } else if (WebViewUpgrade.isInited()) {
-            upgradeStatusTextView.setText("init");
         } else {
             upgradeStatusTextView.setText("");
         }

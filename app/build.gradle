@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    compileSdkVersion 30
 
     defaultConfig {
+        compileSdk 33
         applicationId "com.norman.webviewup.demo"
         minSdkVersion 21
-        targetSdkVersion 30
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
 
@@ -39,9 +39,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    namespace 'com.norman.webviewup.demo'
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.3.0'
     implementation project(":core")
+    implementation project(':download-source')
+
 }

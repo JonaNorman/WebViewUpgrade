@@ -21,7 +21,6 @@ public class WebViewUpdateServiceHook extends BinderHook {
 
 
     private final Context context;
-
     private final String webViewPackageName;
 
     public WebViewUpdateServiceHook(Context context, String packageName) {

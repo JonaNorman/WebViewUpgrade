@@ -60,9 +60,8 @@ public class FileUtils {
     }
 
     public static void makeDirectory(File file) {
-        File directory = file.isDirectory() ? file : file.getParentFile();
-        if (!directory.exists()) {
-            directory.mkdirs();
+        if (file != null && !file.exists()) {
+            file.mkdirs();
         }
     }
 
@@ -107,8 +106,7 @@ public class FileUtils {
 
     public static void copyFile(InputStream inputStream,
                                 File outputFile, boolean close) {
-
-        FileUtils.makeDirectory(outputFile);
+        FileUtils.makeDirectory(outputFile.getParentFile());
         if (!outputFile.exists()) {
             try {
                 outputFile.createNewFile();
@@ -183,7 +181,7 @@ public class FileUtils {
         return file.isFile() && file.exists();
     }
 
-    public static boolean isNotEmptyFile(String path) {
+    public static boolean isNotEmpty(String path) {
         if (TextUtils.isEmpty(path)) {
             return false;
         }
@@ -191,14 +189,18 @@ public class FileUtils {
         return file.isFile() && file.exists() && file.length() != 0;
     }
 
-    public static boolean createFile(File file){
-        if (!file.exists()){
+    public static boolean createFile(File file) {
+        if (file != null && !file.exists()) {
+            makeDirectory(file.getParentFile());
             try {
-               return file.createNewFile();
+                return file.createNewFile();
             } catch (IOException ignore) {
                 return false;
             }
         }
         return true;
+    }
+    public static boolean createFile(String path) {
+        return createFile(new File(path));
     }
 }
