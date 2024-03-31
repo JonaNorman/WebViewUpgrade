@@ -169,6 +169,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         builder.setItems(items, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
                 if (WebViewUpgrade.isProcessing()) {
                     Toast.makeText(getApplicationContext(), "webView is being upgraded, please wait", Toast.LENGTH_LONG).show();
                 } else if (WebViewUpgrade.isCompleted()) {
