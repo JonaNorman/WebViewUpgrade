@@ -23,6 +23,7 @@ import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 import com.norman.webviewup.lib.source.download.UpgradeDownloadSource;
 import com.norman.webviewup.lib.util.ProcessUtils;
+import com.norman.webviewup.lib.util.VersionUtils;
 
 import java.io.File;
 import java.util.Arrays;
@@ -184,7 +185,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
                     if (WebViewUpgrade.getSystemWebViewPackageName().equals(upgradeInfo.packageName)
-                            && WebViewUpgrade.getSystemWebViewPackageVersion().compareTo(upgradeInfo.versionName) >= 0) {
+                            && VersionUtils.compareVersion( WebViewUpgrade.getSystemWebViewPackageVersion(),upgradeInfo.versionName) >= 0) {
                         Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
                         return;
                     }
