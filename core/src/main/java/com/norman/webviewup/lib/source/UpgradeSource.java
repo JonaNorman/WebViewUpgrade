@@ -75,13 +75,14 @@ public abstract class UpgradeSource {
         }
         success = true;
         running = false;
+        onSuccess();
         for (OnPrepareCallback prepareCallback : prepareCallbackSet) {
             HandlerUtils.runInMainThread(() -> {
                 prepareCallback.onPrepareSuccess(this);
             });
         }
         prepareCallbackSet.clear();
-        onSuccess();
+
     }
 
     protected synchronized final void error(@NonNull Throwable throwable) {
