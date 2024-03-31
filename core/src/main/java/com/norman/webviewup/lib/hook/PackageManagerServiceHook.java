@@ -98,6 +98,7 @@ public class PackageManagerServiceHook extends BinderHook {
                 if (list == null){
                     throw new RuntimeException("abi dir  not exist in " + libsPath);
                 }
+                Arrays.sort(supportBitAbis);
                 String cpuAbi = null;
                 for (String name : list) {
                     if (Arrays.binarySearch(supportBitAbis, name) >= 0) {
