@@ -13,7 +13,7 @@ android {
         versionName "1.0"
 
         ndk {
-            abiFilters "armeabi-v7a", "x86"
+            abiFilters "armeabi-v7a"
 //            abiFilters "arm64-v8a", "armeabi-v7a"
         }
     }
@@ -35,6 +35,7 @@ android {
         release {
             minifyEnabled true
             shrinkResources true
+            debuggable false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.config
         }

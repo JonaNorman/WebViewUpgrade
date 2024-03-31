@@ -2,6 +2,7 @@ package com.norman.webviewup.lib.util;
 
 import android.os.Build;
 import android.os.Process;
+import android.util.Log;
 
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.service.interfaces.IVMRuntime;
@@ -38,6 +39,7 @@ public class ProcessUtils {
             currentInstructionSet = ivmRuntime.getCurrentInstructionSet();
         } catch (Throwable throwable) {
             String[] abiSearchArr = new String[]{"mips64", "mips", "x86_64", "x86", "arm64-v8a", "armeabi-v7a", "armeabi"};
+            Arrays.sort(abiSearchArr);
             for (String search : abiSearchArr) {
                 int result = Arrays.binarySearch(Build.SUPPORTED_ABIS, search);
                 if (result >= 0) {
