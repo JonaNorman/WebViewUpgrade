@@ -90,7 +90,9 @@ public class WebViewUpgrade {
                 public void onPrepareSuccess(UpgradeSource webViewSource) {
                     HandlerUtils.runInMainThread(() -> {
                         try {
-                            WebViewReplace.replace(webViewSource.getContext(), webViewPathSource.getPath());
+                            WebViewReplace.replace(webViewSource.getContext(),
+                                    webViewPathSource.getApkPath(),
+                                    webViewPathSource.getLibsPath());
                             callProcessCallback(1.0f);
                             callCompleteCallback();
                         } catch (WebViewReplaceException e) {

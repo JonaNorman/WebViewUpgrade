@@ -26,10 +26,8 @@ import java.util.zip.ZipFile;
 
 public class UpgradeDownloadSource extends UpgradePathSource implements DownloadTaskListener {
 
-    public static final int MAX_DOWNLOAD_THREAD_NUM = 20;
+    public static final int MAX_DOWNLOAD_THREAD_NUM = 10;
     private final String url;
-
-    private final String path;
     private final int threadNum;
 
     private DownloadReceiver downloadReceiver;
@@ -40,9 +38,8 @@ public class UpgradeDownloadSource extends UpgradePathSource implements Download
 
 
     public UpgradeDownloadSource(Context context, String url, File file, int threadNum) {
-        super(context);
+        super(context,file.getPath());
         this.url = url;
-        this.path = file.getPath();
         this.threadNum = threadNum;
     }
 
@@ -58,7 +55,7 @@ public class UpgradeDownloadSource extends UpgradePathSource implements Download
         downloadConfig.setThreadNum(threadNum);
         downloadReceiver = Aria.download(this);
         downloadEntity = downloadReceiver.getFirstDownloadEntity(url);
-        tempPath = path + ".tmp";
+        tempPath = getApkPath() + ".tmp";
         this.downloadReceiver.register();
         if (downloadEntity == null ||
                 downloadEntity.getState() == IEntity.STATE_CANCEL) {
@@ -96,13 +93,13 @@ public class UpgradeDownloadSource extends UpgradePathSource implements Download
                     bufferedInput = findStreamInZip(zipFile);
                 }
                 Objects.requireNonNull(bufferedInput);
-                FileUtils.createFile(path);
-                bufferedOutput = new BufferedOutputStream(new FileOutputStream(path));
+                FileUtils.createFile(getApkPath());
+                bufferedOutput = new BufferedOutputStream(new FileOutputStream(getApkPath()));
                 copyBufferStream(bufferedInput, bufferedOutput);
                 success();
                 deleteDownload();
             } catch (Throwable e) {
-                FileUtils.delete(path);
+                FileUtils.delete(getApkPath());
                 error(e);
             } finally {
                 try {
@@ -208,7 +205,11 @@ public class UpgradeDownloadSource extends UpgradePathSource implements Download
 
     @Override
     public void onTaskFail(DownloadTask task, Exception e) {
-        error(e);
+        if (e == null){
+            error(new RuntimeException("download fail"));
+        }else {
+            error(e);
+        }
     }
 
     @Override
@@ -226,11 +227,6 @@ public class UpgradeDownloadSource extends UpgradePathSource implements Download
     @Override
     public void onNoSupportBreakPoint(DownloadTask task) {
 
-    }
-
-    @Override
-    public synchronized String getPath() {
-        return path;
     }
 
 

@@ -22,9 +22,11 @@ import com.norman.webviewup.lib.service.interfaces.IPackageManager;
 import com.norman.webviewup.lib.service.interfaces.IServiceManager;
 import com.norman.webviewup.lib.service.binder.ProxyBinder;
 import com.norman.webviewup.lib.service.proxy.PackageManagerProxy;
+import com.norman.webviewup.lib.util.FileUtils;
 import com.norman.webviewup.lib.util.ProcessUtils;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -40,15 +42,19 @@ public class PackageManagerServiceHook extends BinderHook {
 
     private final String apkPath;
 
+    private final String libsPath;
+
     private Map<String, IBinder> binderCacheMap;
 
 
     public PackageManagerServiceHook(@NonNull Context context,
                                      @NonNull String packageName,
-                                     @NonNull String apkPath) {
+                                     @NonNull String apkPath,
+                                     @NonNull String libsPath) {
         this.context = context;
         this.webViewPackageName = packageName;
         this.apkPath = apkPath;
+        this.libsPath = libsPath;
     }
 
     private final PackageManagerProxy proxy = new PackageManagerProxy() {
@@ -76,47 +82,46 @@ public class PackageManagerServiceHook extends BinderHook {
                     flags &= ~PackageManager.GET_SIGNATURES;
                     packageInfo = context.getPackageManager().getPackageArchiveInfo(apkPath, flags);
                 }
+                if (packageInfo == null) {
+                    throw new RuntimeException("apkPath is not valid  " + apkPath);
+                }
                 boolean is64Bit = ProcessUtils.is64Bit();
                 String[] supportBitAbis = is64Bit ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS;
                 Arrays.sort(supportBitAbis, Collections.reverseOrder());
                 String nativeLibraryDir = null;
-                String cpuAbi = null;
-                ZipFile zipFile;
-                try {
-                    zipFile = new ZipFile(new File(apkPath));
-                    Enumeration<? extends ZipEntry> entries = zipFile.entries();
-                    while (entries.hasMoreElements()) {
-                        ZipEntry entry = entries.nextElement();
-                        String entryName = entry.getName();
-                        if (entryName.contains("../") || entry.isDirectory()) {
-                            continue;
-                        }
-                        if (!entryName.startsWith("lib/") && !entryName.endsWith(".so")) {
-                            continue;
-                        }
-                        String[] split = entry.getName().split("/");
-                        if (split.length < 2) {
-                            continue;
-                        }
-                        String abi = split[1];
-                        if (Arrays.binarySearch(supportBitAbis, abi) >= 0) {
-                            nativeLibraryDir = apkPath + "!/lib/" + abi;
-                            cpuAbi = abi;
-                            break;
-                        }
-                    }
-                } catch (Throwable ignore) {
 
+                File libsDir = new File(libsPath);
+                if (!FileUtils.exist(libsDir)) {
+                    throw new RuntimeException("libsDir not exist  " + libsPath);
+                }
+                String[] list = libsDir.list();
+                if (list == null){
+                    throw new RuntimeException("abi dir  not exist in " + libsPath);
+                }
+                String cpuAbi = null;
+                for (String name : list) {
+                    if (Arrays.binarySearch(supportBitAbis, name) >= 0) {
+                        cpuAbi = name;
+                        nativeLibraryDir = new File(libsDir, name).getAbsolutePath();
+                        break;
+                    }
                 }
 
                 if (nativeLibraryDir == null) {
                     throw new NullPointerException("unable to find supported abis "
                             + Arrays.toString(supportBitAbis)
-                            + " in apk " + apkPath);
+                            + " in dir " + libsPath);
                 }
                 try {
                     IApplicationInfo iApplicationInfo = RuntimeAccess.objectAccess(IApplicationInfo.class, packageInfo.applicationInfo);
                     iApplicationInfo.setPrimaryCpuAbi(cpuAbi);
+                } catch (Throwable ignore) {
+
+                }
+
+                try {
+                    IApplicationInfo iApplicationInfo = RuntimeAccess.objectAccess(IApplicationInfo.class, packageInfo.applicationInfo);
+                    iApplicationInfo.setNativeLibraryRootDir(libsPath);
                 } catch (Throwable ignore) {
 
                 }

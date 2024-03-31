@@ -18,6 +18,10 @@ android {
         }
     }
 
+    aaptOptions {
+        noCompress "apk"
+    }
+
     buildTypes {
         release {
             minifyEnabled true

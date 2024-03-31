@@ -5,27 +5,39 @@ import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
 
+import com.norman.webviewup.lib.util.ApksUtils;
 import com.norman.webviewup.lib.util.FileUtils;
 
 public abstract class UpgradePathSource extends UpgradeSource {
     private static final String PREFERENCE_NAME = "UPGRADE_PATH_SOURCE";
-
-
     private final SharedPreferences sharedPreferences;
 
-    public UpgradePathSource(@NonNull Context context) {
+    private final String libsPath;
+
+    private final String path;
+
+    public UpgradePathSource(@NonNull Context context, String path) {
         super(context);
+        this.path = path;
+        this.libsPath = path + "-libs";
         this.sharedPreferences = context
                 .getSharedPreferences(PREFERENCE_NAME,
                         Context.MODE_PRIVATE);
     }
 
-    public abstract String getPath();
+    public String getApkPath() {
+        return path;
+    }
+
+    public String getLibsPath() {
+        return libsPath;
+    }
 
     @Override
     protected void onSuccess() {
         super.onSuccess();
-        sharedPreferences.edit().putBoolean(getPath(), true).commit();
+        ApksUtils.extractNativeLibrary(path, libsPath);
+        sharedPreferences.edit().putBoolean(getApkPath(), true).commit();
     }
 
     @Override
@@ -33,12 +45,12 @@ public abstract class UpgradePathSource extends UpgradeSource {
         if (super.isSuccess()) {
             return true;
         }
-        if (sharedPreferences.getBoolean(getPath(), false)) {
-            if (FileUtils.isNotEmpty(getPath())) {
+        if (sharedPreferences.getBoolean(getApkPath(), false)) {
+            if (FileUtils.isNotEmpty(getApkPath())) {
                 success();
                 return true;
             }
-            sharedPreferences.edit().putBoolean(getPath(), false).commit();
+            sharedPreferences.edit().putBoolean(getApkPath(), false).commit();
         }
         return false;
     }

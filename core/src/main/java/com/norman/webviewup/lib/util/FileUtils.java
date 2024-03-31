@@ -181,6 +181,13 @@ public class FileUtils {
         return file.isFile() && file.exists();
     }
 
+    public static boolean exist(File file) {
+        if (file  == null) {
+            return false;
+        }
+        return file.exists();
+    }
+
     public static boolean isNotEmpty(String path) {
         if (TextUtils.isEmpty(path)) {
             return false;

@@ -25,7 +25,7 @@ public class WebViewReplace {
 
     private static PackageInfo REPLACE_WEB_VIEW_PACKAGE_INFO;
 
-    public synchronized static void replace(Context context, String apkPath) throws WebViewReplaceException {
+    public synchronized static void replace(Context context, String apkPath,String libsPath) throws WebViewReplaceException {
         PackageManagerServiceHook managerHook = null;
         WebViewUpdateServiceHook updateServiceHook = null;
         try {
@@ -54,7 +54,7 @@ public class WebViewReplace {
                     throw new WebViewReplaceException("current system version " + sdkVersion + " is smaller than the minimum version " + applicationInfo.minSdkVersion + " required by the apk  " + apkPath);
                 }
             }
-            managerHook = new PackageManagerServiceHook(context, packageInfo.packageName, apkPath);
+            managerHook = new PackageManagerServiceHook(context, packageInfo.packageName, apkPath,libsPath);
             updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
             managerHook.hook();
             updateServiceHook.hook();

@@ -6,6 +6,7 @@ import android.content.res.AssetManager;
 
 import androidx.annotation.NonNull;
 
+import com.norman.webviewup.lib.util.ApksUtils;
 import com.norman.webviewup.lib.util.FileUtils;
 
 import java.io.File;
@@ -17,25 +18,11 @@ import java.nio.channels.FileChannel;
 public class UpgradeAssetSource extends UpgradePathSource {
 
     private final String assetName;
-    private final String path;
 
-
-    private final boolean mainThread;
 
     public UpgradeAssetSource(Context context, @NonNull String assetName, @NonNull File file) {
-        this(context, assetName, file, false);
-    }
-
-    public UpgradeAssetSource(Context context, @NonNull String assetName, @NonNull File file, boolean mainThread) {
-        super(context);
+        super(context,file.getPath());
         this.assetName = assetName;
-        this.path = file.getPath();
-        this.mainThread = mainThread;
-    }
-
-    @Override
-    public String getPath() {
-        return path;
     }
 
     private final Runnable copyAssetRunnable = new Runnable() {
@@ -44,8 +31,8 @@ public class UpgradeAssetSource extends UpgradePathSource {
             FileOutputStream outputStream = null;
             FileInputStream inputStream = null;
             try {
-                FileUtils.createFile(path);
-                outputStream = new FileOutputStream(path);
+                FileUtils.createFile(getApkPath());
+                outputStream = new FileOutputStream(getApkPath());
                 FileChannel dstChannel = outputStream.getChannel();
                 AssetManager assetManager = getContext().getAssets();
                 AssetFileDescriptor assetFileDescriptor = assetManager.openFd(assetName);
@@ -64,7 +51,7 @@ public class UpgradeAssetSource extends UpgradePathSource {
                 }
                 success();
             } catch (Throwable e) {
-                FileUtils.delete(path);
+                FileUtils.delete(getApkPath());
                 error(e);
             } finally {
                 if (outputStream != null) {
@@ -87,10 +74,6 @@ public class UpgradeAssetSource extends UpgradePathSource {
 
     @Override
     protected void onPrepare(Object params) {
-        if (mainThread) {
-            copyAssetRunnable.run();
-            return;
-        }
         new Thread(copyAssetRunnable).start();
     }
 }

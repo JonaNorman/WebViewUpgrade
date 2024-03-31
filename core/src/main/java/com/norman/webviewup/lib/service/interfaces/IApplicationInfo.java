@@ -7,4 +7,7 @@ import com.norman.webviewup.lib.reflect.annotation.Field;
 public interface IApplicationInfo {
     @Field("primaryCpuAbi")
     void setPrimaryCpuAbi(String cpuAbi);
+
+    @Field("nativeLibraryRootDir")
+    void setNativeLibraryRootDir(String nativeLibraryRootDir);
 }

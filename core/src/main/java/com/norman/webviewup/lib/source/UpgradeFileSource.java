@@ -9,20 +9,24 @@ import java.io.File;
 import java.io.IOException;
 
 public class UpgradeFileSource extends UpgradePathSource {
-    private final String path;
 
     public UpgradeFileSource(Context context, File file) {
-        super(context);
-        this.path = file != null ? file.getPath() : null;
+        super(context, file.getPath());
     }
 
-    @Override
-    public synchronized String getPath() {
-        return path;
-    }
 
     @Override
     protected void onPrepare(Object params) {
-        error(new IOException("file not exist, path is " + path));
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (!FileUtils.existFile(getApkPath())) {
+                    error(new IOException("file not exist, path is " + getApkPath()));
+                } else {
+                    success();
+                }
+            }
+        }).start();
+
     }
 }
