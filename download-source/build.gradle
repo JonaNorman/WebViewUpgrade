@@ -27,3 +27,5 @@ dependencies {
     compileOnly project(":core")
     implementation 'me.laoyuyu.aria:core:3.8.16'
 }
+
+apply from: "../publish.gradle"

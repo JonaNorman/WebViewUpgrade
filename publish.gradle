@@ -1,0 +1,230 @@
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+Properties rootLocalProperties = new Properties()
+def rootLocalPropertiesFile = project.rootProject.file('local.properties')
+if (rootLocalPropertiesFile != null && rootLocalPropertiesFile.exists()) {
+    rootLocalProperties.load(rootLocalPropertiesFile.newDataInputStream())
+    rootLocalProperties.each { name, value ->
+        project.ext[name] = value
+    }
+}
+
+
+Properties localProperties = new Properties()
+def localPropertiesFile = project.file('local.properties');
+if (localPropertiesFile != null && localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.newDataInputStream())
+    localProperties.each { name, value ->
+        project.ext[name] = value
+    }
+}
+
+
+def getPropertyValue(key) {
+    return project.ext.has(key) ? project.ext.getProperty(key) : (project.rootProject.ext.has(key)?project.rootProject.ext.getProperty(key):null)
+}
+
+def mavenUsername = getPropertyValue("MAVEN_USER_NAME")
+def mavenPassword = getPropertyValue("MAVEN_PASSWORD")
+def mavenMail = getPropertyValue("MAVEN_LIB_USER_MAIL")
+def projectGroupId = getPropertyValue('MAVEN_LIB_GROUP')
+def projectArtifactId = getPropertyValue("MAVEN_LIB_ARTIFACTID")
+def projectVersionName = getPropertyValue("MAVEN_LIB_VERSION")
+def projectDescription = getPropertyValue("MAVEN_LIB_DESCRIPTION")
+def projectGitUrl = getPropertyValue("MAVEN_LIB_GIT_URL")
+def projectLicense = getPropertyValue("MAVEN_LIB_LICENSE")
+def projectLicenseUrl = projectLicense ? "https://opensource.org/licenses/${projectLicense.toString().replace(" ", "-")} " : null
+if (!mavenUsername) {
+    println('missing parameter MAVEN_USER_NAME')
+    return
+}
+
+if (!mavenPassword) {
+    println('missing parameter MAVEN_PASSWORD')
+    return
+}
+
+if (!projectGroupId) {
+    println('missing parameter MAVEN_LIB_GROUP')
+    return
+}
+
+if (!projectArtifactId) {
+    println('missing parameter MAVEN_LIB_ARTIFACTID')
+    return
+}
+
+if (!projectVersionName) {
+    println('missing parameter MAVEN_LIB_VERSION')
+    return
+}
+
+
+def isAndroidProject = project.hasProperty('android')
+if (isAndroidProject) {
+    task androidJavadocs(type: Javadoc) {
+        source = android.sourceSets.main.java.srcDirs
+        classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    }
+    task javadocsJar(type: Jar, dependsOn: androidJavadocs) {
+        archiveClassifier.set("javadoc")
+        from androidJavadocs.destinationDir
+    }
+    task sourcesJar(type: Jar) {
+        archiveClassifier.set("sources")
+        from android.sourceSets.main.java.srcDirs
+    }
+
+    afterEvaluate { project ->
+        tasks.all { Task task ->
+            if (task.name.equalsIgnoreCase('publish')) {
+                task.dependsOn tasks.getByName('assemble')
+            }
+        }
+    }
+} else {
+    task javadocsJar(type: Jar, dependsOn: javadoc) {
+        archiveClassifier.set("javadoc")
+        from javadoc.destinationDir
+    }
+    task sourcesJar(type: Jar) {
+        archiveClassifier.set("sources")
+        from sourceSets.main.allJava
+    }
+}
+
+tasks.withType(Javadoc).all {
+    options {
+        encoding "UTF-8"
+        charSet 'UTF-8'
+        author true
+        version true
+        links "http://docs.oracle.com/javase/8/docs/api"
+        if (isAndroidProject) {
+            linksOffline "http://d.android.com/reference", "${android.sdkDirectory}/docs/reference"
+        }
+        failOnError = false
+    }
+    enabled = false
+}
+
+artifacts {
+    archives javadocsJar, sourcesJar
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            aar(MavenPublication) {
+                groupId = projectGroupId
+                artifactId = projectArtifactId
+                version = projectVersionName
+                if (isAndroidProject) {
+                    artifact(tasks.getByName("bundleReleaseAar"))
+                } else {
+                    artifact("$buildDir/libs/${project.getName()}.jar")
+                }
+                artifact javadocsJar
+                artifact sourcesJar
+
+                pom {
+                    name = projectArtifactId
+                    description = projectDescription
+                    // If your project has a dedicated site, use its URL here
+                    url = projectGitUrl
+                    licenses {
+                        license {
+                            name = projectLicense
+                            url = projectLicenseUrl
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = mavenUsername
+                            name = mavenUsername
+                            email = mavenMail
+                        }
+                    }
+                    // Version control info, if you're using GitHub, follow the format as seen here
+                    scm {
+                        connection = "scm:git:${projectGitUrl}"
+                        developerConnection = "scm:git:${projectGitUrl}"
+                        url = projectGitUrl
+                    }
+                    withXml {
+                        def dependenciesNode = asNode().appendNode('dependencies')
+                        def scopes = [configurations.compile]
+                        if (configurations.hasProperty("api")) {
+                            scopes.add(configurations.api)
+                        }
+                        if (configurations.hasProperty("implementation")) {
+                            scopes.add(configurations.implementation)
+                        }
+                        if (configurations.hasProperty("debugImplementation")) {
+                            scopes.add(configurations.debugImplementation)
+                        }
+                        if (configurations.hasProperty("releaseImplementation")) {
+                            scopes.add(configurations.releaseImplementation)
+                        }
+                        scopes.each { scope ->
+                            scope.allDependencies.each {
+                                if (it instanceof ModuleDependency) {
+                                    boolean isTransitive = ((ModuleDependency) it).transitive
+                                    if (!isTransitive) {
+                                        return
+                                    }
+                                }
+
+                                if (it.group == "unspecified" || it.version == 'unspecified') {
+                                    return
+                                }
+
+                                if (it.group && it.name && it.version) {
+                                    def dependencyNode = dependenciesNode.appendNode('dependency')
+                                    dependencyNode.appendNode('groupId', it.group)
+                                    dependencyNode.appendNode('artifactId', it.name)
+                                    dependencyNode.appendNode('version', it.version)
+                                    dependencyNode.appendNode('scope', scope.name)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                name = projectArtifactId
+                def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
+                url = projectVersionName.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+                credentials {
+                    username mavenUsername
+                    password mavenPassword
+                }
+            }
+        }
+    }
+}
+
+signing {
+    def signingKeyId = getPropertyValue("MAVEN_SIGNING_KEY_ID")
+    def signingKey = getPropertyValue("MAVEN_SIGNING_KEY")
+    def signingPassword = getPropertyValue("MAVEN_SIGNING_PASSWORD")
+    if (!signingKeyId) {
+        println('missing parameter MAVEN_SIGNING_KEY_ID')
+        return
+    }
+    if (!signingKey) {
+        println('missing parameter MAVEN_SIGNING_KEY')
+        return
+    }
+    if (!signingPassword) {
+        println('missing parameter MAVEN_SIGNING_PASSWORD')
+        return
+    }
+    useInMemoryPgpKeys(signingKeyId, signingKey, signingPassword)
+    sign publishing.publications
+}
