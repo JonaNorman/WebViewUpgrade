@@ -1,6 +1,7 @@
 package com.norman.webviewup.lib;
 
 
+import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradePathSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 import com.norman.webviewup.lib.util.HandlerUtils;
@@ -81,18 +82,21 @@ public class WebViewUpgrade {
             UPGRADE_THROWABLE = null;
             UPGRADE_PROCESS = 0;
 
-            if (!(webViewSource instanceof UpgradePathSource)) {
-                return;
-            }
-            UpgradePathSource webViewPathSource = (UpgradePathSource) webViewSource;
-            webViewPathSource.prepare(new UpgradeSource.OnPrepareCallback() {
+            webViewSource.prepare(new UpgradeSource.OnPrepareCallback() {
                 @Override
                 public void onPrepareSuccess(UpgradeSource webViewSource) {
                     HandlerUtils.runInMainThread(() -> {
                         try {
-                            WebViewReplace.replace(webViewSource.getContext(),
-                                    webViewPathSource.getApkPath(),
-                                    webViewPathSource.getLibsPath());
+                            if (webViewSource instanceof UpgradePathSource) {
+                                UpgradePathSource upgradePathSource = (UpgradePathSource) webViewSource;
+                                WebViewReplace.replace(webViewSource.getContext(),
+                                        upgradePathSource.getApkPath(),
+                                        upgradePathSource.getLibsPath());
+                            } else if (webViewSource instanceof UpgradePackageSource) {
+                                UpgradePackageSource upgradePackageSource = (UpgradePackageSource) webViewSource;
+                                WebViewReplace.replace(webViewSource.getContext(),
+                                        upgradePackageSource.getPackageInfo());
+                            }
                             callProcessCallback(1.0f);
                             callCompleteCallback();
                         } catch (WebViewReplaceException e) {

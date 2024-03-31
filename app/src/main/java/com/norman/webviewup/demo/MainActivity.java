@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -18,6 +19,7 @@ import androidx.appcompat.app.AlertDialog;
 import com.norman.webviewup.lib.UpgradeCallback;
 import com.norman.webviewup.lib.WebViewUpgrade;
 import com.norman.webviewup.lib.source.UpgradeAssetSource;
+import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 import com.norman.webviewup.lib.source.download.UpgradeDownloadSource;
 import com.norman.webviewup.lib.util.ProcessUtils;
@@ -65,7 +67,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo("com.amazon.webview.chromium",
                         "118-5993-tv.5993.155.51",
                         "com.webview.chromium_118-5993-tv.5993.155.51_armeabi-v7a.apk",
-                        "内置")
+                        "内置"),
+                new UpgradeInfo(
+                        "com.android.chrome",
+                        "122.0.6261.43",
+                        "",
+                        "安装包")
 
 
         ));
@@ -210,6 +217,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     getApplicationContext(),
                     upgradeInfo.url,
                     new File(getApplicationContext().getFilesDir(), upgradeInfo.packageName + "/" + upgradeInfo.versionName + ".apk")
+            );
+        } else if (upgradeInfo.extraInfo.equals("安装包")) {
+            upgradeSource = new UpgradePackageSource(
+                    getApplicationContext(),
+                    upgradeInfo.packageName
             );
         }
         return upgradeSource;

@@ -25,10 +25,15 @@ public class UpgradePackageSource extends UpgradeSource {
     @Override
     protected void onPrepare(Object params) {
         try {
-            int flags = params instanceof Integer? (int) params :0;
+            int flags = params instanceof Integer ? (int) params : 0;
             packageInfo = getContext().getPackageManager().getPackageInfo(packageName, flags);
+            if (packageInfo == null) {
+                throw new PackageManager.NameNotFoundException("Package " + packageName + " doesn't exist");
+            }
+            process(1.0f);
+            success();
         } catch (PackageManager.NameNotFoundException e) {
-            throw new RuntimeException(e);
+            error(e);
         }
     }
 }

@@ -91,6 +91,53 @@ public class WebViewReplace {
         }
     }
 
+
+    public synchronized static void replace(Context context, PackageInfo packageInfo) throws WebViewReplaceException {
+        WebViewUpdateServiceHook updateServiceHook = null;
+        try {
+            if (context == null) {
+                throw new WebViewReplaceException("context is null");
+            }
+            if (packageInfo == null) {
+                throw new WebViewReplaceException("packageInfo is null");
+            }
+
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                throw new WebViewReplaceException("replace webView only in main thread");
+            }
+
+            updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
+            updateServiceHook.hook();
+            if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
+                SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
+            }
+            checkWebView(context);
+            REPLACE_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
+        } catch (Throwable throwable) {
+            if (throwable instanceof WebViewReplaceException) {
+                throw throwable;
+            } else {
+                String message = throwable.getMessage();
+                if (TextUtils.isEmpty(message)) {
+                    message = "";
+                }
+                throw new WebViewReplaceException(message, throwable);
+            }
+        } finally {
+            try {
+                if (updateServiceHook != null) {
+                    updateServiceHook.restore();
+                }
+            } catch (Throwable throwable) {
+                String message = throwable.getMessage();
+                if (TextUtils.isEmpty(message)) {
+                    message = "";
+                }
+                throw new WebViewReplaceException(message, throwable);
+            }
+        }
+    }
+
     public synchronized static String getSystemWebViewPackageName() {
         if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
             SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();

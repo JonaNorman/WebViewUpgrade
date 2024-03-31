@@ -1,33 +1,12 @@
 package com.norman.webviewup.demo;
 
-import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.DownloadManager;
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.Looper;
-import android.util.Log;
-import android.webkit.CookieManager;
-import android.webkit.URLUtil;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebViewRenderProcess;
-import android.webkit.WebViewRenderProcessClient;
 import android.widget.TextView;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
-import androidx.core.app.ActivityCompat;
 
 
 public class WebViewActivity extends Activity {
