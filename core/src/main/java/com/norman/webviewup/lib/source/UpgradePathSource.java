@@ -16,6 +16,7 @@ public abstract class UpgradePathSource extends UpgradeSource {
 
     private final String path;
 
+
     public UpgradePathSource(@NonNull Context context, String path) {
         super(context);
         this.path = path;
@@ -23,6 +24,12 @@ public abstract class UpgradePathSource extends UpgradeSource {
         this.sharedPreferences = context
                 .getSharedPreferences(PREFERENCE_NAME,
                         Context.MODE_PRIVATE);
+    }
+
+    public synchronized void delete(){
+        this.sharedPreferences.edit().remove(this.path).commit();
+        FileUtils.delete(path);
+        FileUtils.delete(this.libsPath);
     }
 
     public String getApkPath() {
