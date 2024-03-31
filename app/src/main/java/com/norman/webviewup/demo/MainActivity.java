@@ -186,7 +186,8 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
-                    if (WebViewUpgrade.getSystemWebViewPackageName().equals(upgradeInfo.packageName)
+                    String  systemWebViewPackageName = WebViewUpgrade.getSystemWebViewPackageName();
+                    if (systemWebViewPackageName != null &&systemWebViewPackageName.equals(upgradeInfo.packageName)
                             && VersionUtils.compareVersion( WebViewUpgrade.getSystemWebViewPackageVersion(),upgradeInfo.versionName) >= 0) {
                         Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
                         return;

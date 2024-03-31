@@ -1,10 +1,16 @@
 package com.norman.webviewup.lib.hook;
 
+import static android.os.Parcelable.PARCELABLE_WRITE_RETURN_VALUE;
+
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.os.Parcel;
+import android.os.Parcelable;
 
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.service.binder.BinderHook;
@@ -25,7 +31,7 @@ public class WebViewUpdateServiceHook extends BinderHook {
 
     public WebViewUpdateServiceHook(Context context, String packageName) {
         this.context = context;
-        this.webViewPackageName =packageName;
+        this.webViewPackageName = packageName;
     }
 
     private final WebViewUpdateServiceProxy proxy = new WebViewUpdateServiceProxy() {
@@ -44,6 +50,19 @@ public class WebViewUpdateServiceHook extends BinderHook {
             }
             IWebViewProviderResponse webViewProviderResponse = RuntimeAccess.objectAccess(IWebViewProviderResponse.class, result);
             webViewProviderResponse.setPackageInfo(packageInfo);
+
+            Parcel parcel = Parcel.obtain();
+            parcel.writeParcelable((Parcelable) result, 0);
+            parcel.setDataPosition(parcel.dataSize()-4);
+            parcel.writeInt(0);
+            parcel.setDataPosition(0);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                result = parcel.readParcelable(result.getClass().getClassLoader(), result.getClass());
+            } else {
+                result = parcel.readParcelable(result.getClass().getClassLoader());
+            }
+            parcel.recycle();
+
             return result;
         }
 
