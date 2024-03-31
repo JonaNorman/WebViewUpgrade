@@ -176,9 +176,14 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     Toast.makeText(getApplicationContext(), "webView is already upgrade success,not support dynamic switch", Toast.LENGTH_LONG).show();
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
+                    if (WebViewUpgrade.getSystemWebViewPackageName().equals(upgradeInfo.packageName)
+                            && WebViewUpgrade.getSystemWebViewPackageVersion().compareTo(upgradeInfo.versionName) >= 0) {
+                        Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
+                        return;
+                    }
                     selectUpgradeInfo = upgradeInfo;
                     UpgradeSource upgradeSource = getUpgradeSource(upgradeInfo);
-                    if (upgradeSource == null){
+                    if (upgradeSource == null) {
                         return;
                     }
                     WebViewUpgrade.upgrade(upgradeSource);
@@ -194,13 +199,13 @@ public class MainActivity extends Activity implements UpgradeCallback {
     @Nullable
     private UpgradeSource getUpgradeSource(UpgradeInfo upgradeInfo) {
         UpgradeSource upgradeSource = null;
-        if (upgradeInfo.extraInfo.equals("网络")){
+        if (upgradeInfo.extraInfo.equals("网络")) {
             upgradeSource = new UpgradeDownloadSource(
                     getApplicationContext(),
                     upgradeInfo.url,
                     new File(getApplicationContext().getFilesDir(), upgradeInfo.packageName + "/" + upgradeInfo.versionName + ".apk")
             );
-        }else if (upgradeInfo.extraInfo.equals("内置")){
+        } else if (upgradeInfo.extraInfo.equals("内置")) {
             upgradeSource = new UpgradeAssetSource(
                     getApplicationContext(),
                     upgradeInfo.url,
@@ -265,7 +270,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
 
         public UpgradeInfo(String packageName, String versionName, String url, String extraInfo) {
             this.title = packageName + "\n" + versionName;
-            this.extraInfo = !TextUtils.isEmpty(extraInfo)?extraInfo:"";
+            this.extraInfo = !TextUtils.isEmpty(extraInfo) ? extraInfo : "";
             if (!extraInfo.isEmpty()) {
                 this.title = this.title + "\n" + extraInfo;
             }
