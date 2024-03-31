@@ -82,14 +82,16 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo(
                         "com.huawei.webview",
                         "14.0.0.331",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip")
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
+                        "网络")
         ));
 
         UPGRADE_PACKAGE_MAP.put("x86", Arrays.asList(
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "122.0.6261.64",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_x86.zip")
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_x86.zip",
+                        "网络")
         ));
 
     }
