@@ -26,6 +26,21 @@ After a successful upgrade, the package name of the WebView kernel changes to `c
 
 <img src="/preview/webview_can_play_h265.jpg" width="400px">
 
+# implementation
+```gradle
+implementation 'io.github.jonanorman.android.webviewup:core:0.1.0'// 不需要下载APK时使用
+implementation 'io.github.jonanorman.android.webviewup:download-source:0.1.0'// 需要下载APK使用
+```
+
+```java
+            UpgradeDownloadSource  upgradeSource = new UpgradeDownloadSource(
+                    context,
+                    url,
+                    file
+            );
+            WebViewUpgrade.upgrade(upgradeSource);
+```
+
 ## Compatibility
 
 Android devices vary greatly. The following features and device models have been tested. Contributions through issue submissions and Merge Requests to this project are welcomed.

@@ -25,6 +25,7 @@ android {
 
 dependencies {
     compileOnly project(":core")
+//    compileOnly 'io.github.jonanorman.android.webviewup:core:0.1.0'
     implementation 'me.laoyuyu.aria:core:3.8.16'
 }
 

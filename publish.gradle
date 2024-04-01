@@ -154,7 +154,10 @@ afterEvaluate {
                     }
                     withXml {
                         def dependenciesNode = asNode().appendNode('dependencies')
-                        def scopes = [configurations.compile]
+                        def scopes = []
+                        if (configurations.hasProperty("compile")) {
+                            scopes.add(configurations.compile)
+                        }
                         if (configurations.hasProperty("api")) {
                             scopes.add(configurations.api)
                         }

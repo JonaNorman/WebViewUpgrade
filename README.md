@@ -25,6 +25,21 @@ WebView内核选择页面如下图所示
 
 <img src="/preview/webview_can_play_h265.jpg" width="400px">
 
+# 使用
+```gradle
+implementation 'io.github.jonanorman.android.webviewup:core:0.1.0'
+implementation 'io.github.jonanorman.android.webviewup:download-source:0.1.0'
+```
+
+```java
+            UpgradeDownloadSource  upgradeSource = new UpgradeDownloadSource(
+                    context,
+                    url,
+                    file
+            );
+            WebViewUpgrade.upgrade(upgradeSource);
+```
+
 # 兼容性
 
 Android的设备五花八门，已测试以下功能和机型，欢迎大家提issue和Merge Request加入到这个项目中来，有疑惑可以扫码加群，如果二维码显示过期了，可以搜索微信号JonaNorman加我个人微信拉你进群(请备注WebView升级)
