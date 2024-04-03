@@ -130,6 +130,9 @@ public class PackageManagerServiceHook extends BinderHook {
                 if (TextUtils.isEmpty(packageInfo.applicationInfo.sourceDir)) {
                     packageInfo.applicationInfo.sourceDir = apkPath;
                 }
+                if (TextUtils.isEmpty(packageInfo.applicationInfo.publicSourceDir)) {
+                    packageInfo.applicationInfo.publicSourceDir = apkPath;
+                }
                 return packageInfo;
             }
             return (PackageInfo) invoke();
