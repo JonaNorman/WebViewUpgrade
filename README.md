@@ -1,6 +1,6 @@
 # WebViewUpgrade
 
-English | [简体中文](./README.md)
+English | [简体中文](./README-ZH.md)
 
 This library implements the functionality of upgrading the WebView kernel on Android without installation.
 
