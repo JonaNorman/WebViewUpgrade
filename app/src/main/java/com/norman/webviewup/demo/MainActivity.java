@@ -80,6 +80,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
 
         UPGRADE_PACKAGE_MAP.put("arm64", Arrays.asList(
                 new UpgradeInfo(
+                        "com.google.android.webview",
+                        "122.0.6261.64",
+                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_arm64-v8a.zip",
+                        "网络"),
+                new UpgradeInfo(
                         "com.huawei.webview",
                         "14.0.0.331",
                         "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
