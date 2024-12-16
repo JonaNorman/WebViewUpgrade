@@ -3,6 +3,7 @@ package com.norman.webviewup.lib.source;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -35,6 +36,7 @@ public class UpgradeAssetSource extends UpgradePathSource {
                 outputStream = new FileOutputStream(getApkPath());
                 FileChannel dstChannel = outputStream.getChannel();
                 AssetManager assetManager = getContext().getAssets();
+                Log.d("AssetsUpdater",assetManager.openFd(assetName).toString());
                 AssetFileDescriptor assetFileDescriptor = assetManager.openFd(assetName);
                 inputStream = assetFileDescriptor.createInputStream();
                 FileChannel fileChannel = inputStream.getChannel();
