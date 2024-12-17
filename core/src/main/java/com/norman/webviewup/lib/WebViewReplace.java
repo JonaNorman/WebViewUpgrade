@@ -8,6 +8,7 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 import android.webkit.WebView;
 
 import com.norman.webviewup.lib.hook.PackageManagerServiceHook;
@@ -17,6 +18,8 @@ import com.norman.webviewup.lib.service.interfaces.IServiceManager;
 import com.norman.webviewup.lib.service.interfaces.IWebViewFactory;
 import com.norman.webviewup.lib.service.interfaces.IWebViewUpdateService;
 import com.norman.webviewup.lib.util.FileUtils;
+
+import java.io.File;
 
 
 public class WebViewReplace {
@@ -55,11 +58,17 @@ public class WebViewReplace {
                 }
             }
             managerHook = new PackageManagerServiceHook(context, packageInfo.packageName, apkPath,libsPath);
+            Log.i("Upgrade","apkPath:"+apkPath);
+
             updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
             managerHook.hook();
             updateServiceHook.hook();
             if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
                 SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
+            }
+            File file = new File(apkPath);
+            if(file.exists()){
+                file.setReadOnly();
             }
             checkWebView(context);
             REPLACE_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();

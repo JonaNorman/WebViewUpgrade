@@ -96,6 +96,17 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "com.google.android.webview",
                         "122.0.6261.64",
                         "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_x86.zip",
+                        "网络"),
+                new UpgradeInfo("com.google.android.webview",
+                        "131.0.6778.105",
+                        "com.google.android.webview_131.0.6778.105-677810506_minAPI26_maxAPI28(x86)(nodpi)_apkmirror.com.apk",
+                        "内置")
+        ));
+        UPGRADE_PACKAGE_MAP.put("x86_64", Arrays.asList(
+                new UpgradeInfo(
+                        "com.google.android.webview",
+                        "131.0.6778.135",
+                        "https://www.ghproxy.cn/https://github.com/VoryWork/AndroidWebviewNew/releases/download/131.0.6778.135/x64.apk",
                         "网络")
         ));
 
@@ -177,6 +188,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         builder.setTitle("Choose WebView");
         List<UpgradeInfo> upgradeInfoList = UPGRADE_PACKAGE_MAP.get(ProcessUtils.getCurrentInstruction());
 
+        assert upgradeInfoList != null;
         String[] items = new String[upgradeInfoList.size()];
         for (int i = 0; i < items.length; i++) {
             items[i] = upgradeInfoList.get(i).title;

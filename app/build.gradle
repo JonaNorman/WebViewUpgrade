@@ -8,14 +8,9 @@ android {
         compileSdk 33
         applicationId "com.norman.webviewup.demo"
         minSdkVersion 21
-        targetSdkVersion 33
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
-
-        ndk {
-            abiFilters "armeabi-v7a"
-//            abiFilters "arm64-v8a", "armeabi-v7a"
-        }
     }
 
     aaptOptions {
@@ -50,10 +45,6 @@ android {
         main {
             jniLibs.srcDirs = ["libs"]
         }
-    }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
     }
     namespace 'com.norman.webviewup.demo'
 }
