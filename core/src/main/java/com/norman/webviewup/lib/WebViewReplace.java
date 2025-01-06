@@ -58,7 +58,6 @@ public class WebViewReplace {
                 }
             }
             managerHook = new PackageManagerServiceHook(context, packageInfo.packageName, apkPath,libsPath);
-            Log.i("Upgrade","apkPath:"+apkPath);
 
             updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
             managerHook.hook();

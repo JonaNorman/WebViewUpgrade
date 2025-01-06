@@ -5,7 +5,7 @@ plugins {
 android {
 
     defaultConfig {
-        compileSdk 33
+        compileSdk 35
         applicationId "com.norman.webviewup.demo"
         minSdkVersion 21
         targetSdkVersion 35

@@ -204,11 +204,11 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 } else {
                     UpgradeInfo upgradeInfo = upgradeInfoList.get(which);
                     String  systemWebViewPackageName = WebViewUpgrade.getSystemWebViewPackageName();
-                    if (systemWebViewPackageName != null &&systemWebViewPackageName.equals(upgradeInfo.packageName)
-                            && VersionUtils.compareVersion( WebViewUpgrade.getSystemWebViewPackageVersion(),upgradeInfo.versionName) >= 0) {
-                        Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
-                        return;
-                    }
+//                    if (systemWebViewPackageName != null &&systemWebViewPackageName.equals(upgradeInfo.packageName)
+//                            && VersionUtils.compareVersion( WebViewUpgrade.getSystemWebViewPackageVersion(),upgradeInfo.versionName) >= 0) {
+//                        Toast.makeText(getApplicationContext(), "system webView is larger than the one to be upgraded, so there is no need to upgrade", Toast.LENGTH_LONG).show();
+//                        return;
+//                    }
                     selectUpgradeInfo = upgradeInfo;
                     UpgradeSource upgradeSource = getUpgradeSource(upgradeInfo);
                     if (upgradeSource == null) {

@@ -6,7 +6,7 @@ android {
     namespace 'com.norman.webviewup.lib'
 
     defaultConfig {
-        compileSdk 33
+        compileSdk 35
         minSdkVersion 21
         targetSdkVersion 33
         consumerProguardFiles "consumer-rules.pro"

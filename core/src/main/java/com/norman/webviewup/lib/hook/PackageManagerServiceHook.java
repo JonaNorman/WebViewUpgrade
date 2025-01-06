@@ -3,6 +3,7 @@ package com.norman.webviewup.lib.hook;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -133,6 +134,8 @@ public class PackageManagerServiceHook extends BinderHook {
                 if (TextUtils.isEmpty(packageInfo.applicationInfo.publicSourceDir)) {
                     packageInfo.applicationInfo.publicSourceDir = apkPath;
                 }
+                packageInfo.applicationInfo.flags |= ApplicationInfo.FLAG_INSTALLED
+                        | ApplicationInfo.FLAG_HAS_CODE;
                 return packageInfo;
             }
             return (PackageInfo) invoke();
