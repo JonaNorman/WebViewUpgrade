@@ -3,6 +3,13 @@
 
     <queries>
         <package android:name="com.android.chrome" />
+        <package android:name="com.android.webview" />
+        <package android:name="com.google.android.webview" />
+        <package android:name="com.google.android.webview.beta" />
+        <package android:name="com.google.android.webview.canary" />
+        <package android:name="com.google.android.webview.dev" />
+        <package android:name="com.huawei.webview" />
+        <package android:name="org.bromite.webview" />
     </queries>
 
     <application
