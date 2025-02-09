@@ -38,6 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import cn.hle.skipselfstartmanager.util.MobileInfoUtils;
+
 
 public class MainActivity extends Activity implements UpgradeCallback {
 
@@ -263,16 +265,16 @@ public class MainActivity extends Activity implements UpgradeCallback {
                                 dlg.setMessage("请授予Webview(" + upgradeInfo.packageName + ")自启动权限后重新进入APP，否则本App将无法正常使用Webview组件！");
                                 dlg.setTitle("Alert");
                                 dlg.setCancelable(false);
-                                dlg.setPositiveButton(android.R.string.ok,
-                                        (dialog1, which1) -> {
-                                            navigateToAppSettingsAndExit(upgradeInfo);
-                                        });
+                                dlg.setPositiveButton("立即设置",
+                                        (dialog1, which1) -> navigateToAppSettingsAndExit());
+                                dlg.setNegativeButton("暂时不设置",
+                                        (dialog3, which2) -> dialog3.dismiss());
                                 dlg.setOnKeyListener((dialog2, keyCode, event) -> {
                                     if (keyCode == KeyEvent.KEYCODE_BACK) {
                                         return false;
                                     }
                                     else {
-                                        navigateToAppSettingsAndExit(upgradeInfo);
+                                        navigateToAppSettingsAndExit();
                                         return true;
                                     }
                                 });
@@ -293,12 +295,8 @@ public class MainActivity extends Activity implements UpgradeCallback {
         dialog.show();
     }
 
-    private void navigateToAppSettingsAndExit(UpgradeInfo upgradeInfo) {
-        Intent intent = new Intent();
-        intent.setAction(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        Uri uri = Uri.fromParts("package", upgradeInfo.packageName, null);
-        intent.setData(uri);
-        startActivity(intent);
+    private void navigateToAppSettingsAndExit() {
+        MobileInfoUtils.jumpStartInterface(this);
         finish();
         android.os.Process.killProcess(android.os.Process.myPid());
     }
