@@ -42,27 +42,27 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "122.0.6261.64",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_armeabi-v7a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_armeabi-v7a.zip",
                         "网络"),
                 new UpgradeInfo(
                         "com.android.webview",
                         "113.0.5672.136",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.13_armeabi-v7a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.webview_113.0.5672.13_armeabi-v7a.zip",
                         "网络"),
                 new UpgradeInfo(
                         "com.huawei.webview",
                         "14.0.0.331",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
                         "网络"),
                 new UpgradeInfo(
                         "com.android.chrome",
                         "122.0.6261.43",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.chrome_122.0.6261.64_armeabi-v7a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.android.chrome_122.0.6261.64_armeabi-v7a.zip",
                         "网络"),
 
                 new UpgradeInfo("com.amazon.webview.chromium",
                         "118-5993-tv.5993.155.51",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.amazon.webview.chromium_118-5993-tv.5993.155.51_armeabi-v7a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.amazon.webview.chromium_118-5993-tv.5993.155.51_armeabi-v7a.zip",
                         "网络"),
 
                 new UpgradeInfo("com.amazon.webview.chromium",
@@ -82,12 +82,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "122.0.6261.64",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_arm64-v8a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_arm64-v8a.zip",
                         "网络"),
                 new UpgradeInfo(
                         "com.huawei.webview",
                         "14.0.0.331",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
                         "网络")
         ));
 
@@ -95,7 +95,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "122.0.6261.64",
-                        "https://mirror.ghproxy.com/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_x86.zip",
+                        "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.google.android.webview_122.0.6261.64_x86.zip",
                         "网络"),
                 new UpgradeInfo("com.google.android.webview",
                         "131.0.6778.105",
@@ -106,7 +106,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 new UpgradeInfo(
                         "com.google.android.webview",
                         "131.0.6778.135",
-                        "https://www.ghproxy.cn/https://github.com/VoryWork/AndroidWebviewNew/releases/download/131.0.6778.135/x64.apk",
+                        "https://ghfast.top/https://github.com/VoryWork/AndroidWebviewNew/releases/download/131.0.6778.135/x64.apk",
                         "网络")
         ));
 
