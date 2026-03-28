@@ -6,12 +6,12 @@ import com.norman.webviewup.lib.source.UpgradePathSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 import com.norman.webviewup.lib.util.HandlerUtils;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class WebViewUpgrade {
 
-    private static final Set<UpgradeCallback> UPGRADE_CALLBACK_SET = new HashSet<>();
+    private static final Set<UpgradeCallback> UPGRADE_CALLBACK_SET = new CopyOnWriteArraySet<>();
 
     private static final int STATUS_NEW = 0;
 

@@ -16,14 +16,18 @@ import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public class UpgradeDownloadSource extends UpgradePathSource {
 
+    private static final ExecutorService EXECUTOR = Executors.newSingleThreadExecutor();
+
     private final String url;
     private String tempPath;
-    private boolean isCancelled = false;
+    private volatile boolean isCancelled = false;
 
     public UpgradeDownloadSource(Context context, String url) {
         super(context, url);
@@ -35,7 +39,7 @@ public class UpgradeDownloadSource extends UpgradePathSource {
         tempPath = getApkPath() + ".tmp";
         isCancelled = false;
 
-        new Thread(() -> {
+        EXECUTOR.submit(() -> {
             try {
                 // 1. 下载文件 (支持断点续传)
                 downloadFile();
@@ -51,7 +55,7 @@ public class UpgradeDownloadSource extends UpgradePathSource {
                 FileUtils.delete(getApkPath());
                 error(e);
             }
-        }).start();
+        });
     }
 
     private void downloadFile() throws IOException {
@@ -63,8 +67,6 @@ public class UpgradeDownloadSource extends UpgradePathSource {
         long downloadedSize = tempFile.exists() ? tempFile.length() : 0;
 
         HttpURLConnection connection = null;
-        RandomAccessFile randomAccessFile = null;
-        InputStream inputStream = null;
 
         try {
             URL downloadUrl = new URL(url);
@@ -80,47 +82,51 @@ public class UpgradeDownloadSource extends UpgradePathSource {
             connection.connect();
             int responseCode = connection.getResponseCode();
             long totalSize;
+            long contentLength;
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                contentLength = connection.getContentLengthLong();
+            } else {
+                String lengthStr = connection.getHeaderField("Content-Length");
+                contentLength = TextUtils.isEmpty(lengthStr) ? -1 : Long.parseLong(lengthStr);
+            }
 
             if (responseCode == HttpURLConnection.HTTP_PARTIAL) {
                 // 206 断点续传成功
-                totalSize = downloadedSize + connection.getContentLength();
-                randomAccessFile = new RandomAccessFile(tempFile, "rw");
-                randomAccessFile.seek(downloadedSize);
+                totalSize = downloadedSize + contentLength;
             } else if (responseCode == HttpURLConnection.HTTP_OK) {
                 // 200 不支持断点续传或文件发生改变，重新下载
                 downloadedSize = 0;
-                totalSize = connection.getContentLength();
+                totalSize = contentLength;
                 FileUtils.delete(tempPath);
                 FileUtils.createFile(tempPath);
-                randomAccessFile = new RandomAccessFile(tempFile, "rw");
             } else {
                 throw new IOException("Server returned HTTP " + responseCode);
             }
 
-            inputStream = connection.getInputStream();
-            byte[] buffer = new byte[8192];
-            int readCount;
+            // 使用 try-with-resources 自动管理流的关闭
+            try (RandomAccessFile randomAccessFile = new RandomAccessFile(tempFile, "rw");
+                 InputStream inputStream = connection.getInputStream()) {
+                
+                randomAccessFile.seek(downloadedSize);
+                byte[] buffer = new byte[8192];
+                int readCount;
 
-            while ((readCount = inputStream.read(buffer)) != -1) {
-                if (isCancelled) {
-                    return;
-                }
-                randomAccessFile.write(buffer, 0, readCount);
-                downloadedSize += readCount;
+                while ((readCount = inputStream.read(buffer)) != -1) {
+                    if (isCancelled) {
+                        return;
+                    }
+                    randomAccessFile.write(buffer, 0, readCount);
+                    downloadedSize += readCount;
 
-                if (totalSize > 0) {
-                    // 下载阶段占据总进度的 95%
-                    float percent = 0.95f * downloadedSize / totalSize;
-                    process(percent);
+                    if (totalSize > 0) {
+                        // 下载阶段占据总进度的 95%
+                        float percent = 0.95f * downloadedSize / totalSize;
+                        process(percent);
+                    }
                 }
             }
         } finally {
-            if (randomAccessFile != null) {
-                try { randomAccessFile.close(); } catch (IOException ignore) {}
-            }
-            if (inputStream != null) {
-                try { inputStream.close(); } catch (IOException ignore) {}
-            }
             if (connection != null) {
                 connection.disconnect();
             }
@@ -128,38 +134,36 @@ public class UpgradeDownloadSource extends UpgradePathSource {
     }
 
     private void processDownloadedFile() throws IOException {
-        BufferedInputStream bufferedInput = null;
-        BufferedOutputStream bufferedOutput = null;
-        ZipFile zipFile = null;
-        
+        FileUtils.createFile(getApkPath());
+
         try {
             if (isValidApk(tempPath)) {
-                bufferedInput = new BufferedInputStream(new FileInputStream(tempPath));
+                try (BufferedInputStream bufferedInput = new BufferedInputStream(new FileInputStream(tempPath));
+                     BufferedOutputStream bufferedOutput = new BufferedOutputStream(new FileOutputStream(getApkPath()))) {
+                    copyBufferStream(bufferedInput, bufferedOutput);
+                }
             } else {
-                zipFile = new ZipFile(tempPath);
-                bufferedInput = findStreamInZip(zipFile);
-                if (bufferedInput == null) {
-                    throw new IOException("Cannot find valid APK in the downloaded zip file.");
+                try (ZipFile zipFile = new ZipFile(tempPath)) {
+                    try (BufferedInputStream bufferedInput = findStreamInZip(zipFile)) {
+                        if (bufferedInput == null) {
+                            throw new IOException("Cannot find valid APK in the downloaded zip file.");
+                        }
+                        try (BufferedOutputStream bufferedOutput = new BufferedOutputStream(new FileOutputStream(getApkPath()))) {
+                            copyBufferStream(bufferedInput, bufferedOutput);
+                        }
+                    }
                 }
             }
 
-            FileUtils.createFile(getApkPath());
-            bufferedOutput = new BufferedOutputStream(new FileOutputStream(getApkPath()));
-            copyBufferStream(bufferedInput, bufferedOutput);
-            
-            // 提取完毕后删除临时文件
-            FileUtils.delete(tempPath);
-            
-        } finally {
-            if (bufferedInput != null) {
-                try { bufferedInput.close(); } catch (IOException ignore) {}
+            // 提取完毕后删除临时文件或清理已损坏的合并文件
+            if (!isCancelled) {
+                FileUtils.delete(tempPath);
+            } else {
+                FileUtils.delete(getApkPath());
             }
-            if (bufferedOutput != null) {
-                try { bufferedOutput.close(); } catch (IOException ignore) {}
-            }
-            if (zipFile != null) {
-                try { zipFile.close(); } catch (IOException ignore) {}
-            }
+        } catch (IOException e) {
+            FileUtils.delete(getApkPath());
+            throw e;
         }
     }
 
