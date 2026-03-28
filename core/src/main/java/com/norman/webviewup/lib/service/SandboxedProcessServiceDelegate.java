@@ -137,9 +137,6 @@ public class SandboxedProcessServiceDelegate {
                     Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
             Log.i(TAG, "createPackageContext 成功: " + webViewPkg
                     + ", cl=" + c.getClassLoader().getClass().getName());
-            // 兜底：若 ResourcesManager 仍跳过了 shared-library 路径，强制 addAssetPath
-            forceAddAssetPath(c, mWebViewApkPath);
-            diagIcuDataAccess(c, mWebViewApkPath);
             return c;
         } catch (Throwable t) {
             Log.e(TAG, "createPackageContext 失败: " + webViewPkg, t);
@@ -147,10 +144,6 @@ public class SandboxedProcessServiceDelegate {
         }
     }
 
-    /**
-     * 用反射调用 AssetManager.addAssetPath，绕过 ResourcesManager "not up to date" 检查，
-     * 直接把 APK 注册进 AssetManager，使 openNonAssetFd("icudtl.dat") 可用。
-     */
     /**
      * 清除 ActivityThread 中对指定包名 LoadedApk 的缓存。
      * 详见 AbstractWebViewPackageManagerHook.invalidateLoadedApkCache 注释。
@@ -174,64 +167,6 @@ public class SandboxedProcessServiceDelegate {
             }
         } catch (Exception e) {
             Log.w(TAG, "invalidateLoadedApkCache failed: " + e.getMessage());
-        }
-    }
-
-    private static void forceAddAssetPath(Context ctx, String apkPath) {
-        if (ctx == null || apkPath == null) return;
-        try {
-            java.lang.reflect.Method addAssetPath =
-                    android.content.res.AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
-            addAssetPath.setAccessible(true);
-            int cookie = (int) addAssetPath.invoke(ctx.getAssets(), apkPath);
-            Log.i(TAG, "forceAddAssetPath cookie=" + cookie + " path=" + apkPath);
-        } catch (Exception e) {
-            Log.w(TAG, "forceAddAssetPath 失败: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 子进程侧 ICU 诊断：确认 APK 中 assets/icudtl.dat 是否可用。
-     * 若子进程能打开而主进程发来的 fd=-1，说明主进程 AssetManager 配置异常；
-     * 若子进程也无法打开，说明 APK 本身缺失或压缩了 ICU 数据。
-     */
-    private static void diagIcuDataAccess(Context webViewCtx, String apkPath) {
-        if (apkPath != null) {
-            try (java.util.zip.ZipFile zf = new java.util.zip.ZipFile(apkPath)) {
-                java.util.zip.ZipEntry icuEntry = zf.getEntry("assets/icudtl.dat");
-                if (icuEntry != null) {
-                    boolean stored = icuEntry.getMethod() == java.util.zip.ZipEntry.STORED;
-                    Log.i(TAG, "[ICU子进程诊断] APK 存在 assets/icudtl.dat"
-                            + " compression=" + (stored ? "STORED(可用)" : "DEFLATED(不可用)")
-                            + " size=" + icuEntry.getSize());
-                } else {
-                    Log.w(TAG, "[ICU子进程诊断] APK 中无 assets/icudtl.dat，列举 icu 相关文件：");
-                    java.util.Enumeration<? extends java.util.zip.ZipEntry> en = zf.entries();
-                    while (en.hasMoreElements()) {
-                        java.util.zip.ZipEntry e = en.nextElement();
-                        if (e.getName().toLowerCase().contains("icu")) {
-                            Log.w(TAG, "  [ICU候选] " + e.getName()
-                                    + " method=" + e.getMethod() + " size=" + e.getSize());
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                Log.w(TAG, "[ICU子进程诊断] ZIP 检查失败: " + e.getMessage());
-            }
-        }
-        if (webViewCtx != null) {
-            // openNonAssetFd 的路径相对于 APK 根目录，ICU 文件在 APK 中的路径是 assets/icudtl.dat
-            try {
-                android.content.res.AssetFileDescriptor afd =
-                        webViewCtx.getAssets().openNonAssetFd("assets/icudtl.dat");
-                Log.i(TAG, "[ICU子进程诊断] openNonAssetFd 成功"
-                        + " fd=" + afd.getParcelFileDescriptor().getFd()
-                        + " offset=" + afd.getStartOffset()
-                        + " len=" + afd.getDeclaredLength());
-                afd.close();
-            } catch (Exception e) {
-                Log.e(TAG, "[ICU子进程诊断] openNonAssetFd 失败: " + e.getMessage());
-            }
         }
     }
 
@@ -269,11 +204,6 @@ public class SandboxedProcessServiceDelegate {
         patchApplicationInfo(apkPath, nativeLibDir);
 
         Context webViewCtx = tryCreateWebViewPackageContext(webViewPkg);
-
-        // 将 WebView APK 注入宿主 Application 的 AssetManager（兜底）。
-        // 即使 SandboxedApplicationContext 正确代理了 getAssets()，仍有代码路径
-        // 可能绕过包装直接拿 Application（如 Chromium 的 static Application 引用）。
-        forceAddAssetPath(mAppContext, mWebViewApkPath);
 
         if (webViewCtx != null
                 && installChromiumDelegatingClassLoader(webViewCtx.getClassLoader())) {

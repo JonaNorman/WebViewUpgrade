@@ -19,9 +19,6 @@ import com.norman.webviewup.lib.service.interfaces.IWebViewFactory;
 import com.norman.webviewup.lib.service.interfaces.IWebViewUpdateService;
 import com.norman.webviewup.lib.util.FileUtils;
 
-import java.io.File;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 import com.norman.webviewup.lib.hook.ActivityManagerHook;
 
 public class WebViewReplace {
@@ -134,8 +131,6 @@ public class WebViewReplace {
             updateServiceHook.hook();
             sActivityManagerHook.hook();
 
-            diagIcuDataAccess(context, packageInfo.packageName, apkPath);
-
             if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
                 SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
             }
@@ -189,115 +184,6 @@ public class WebViewReplace {
 
     public synchronized static String getReplaceWebViewVersion() {
         return REPLACE_WEB_VIEW_PACKAGE_INFO != null ? REPLACE_WEB_VIEW_PACKAGE_INFO.versionName : null;
-    }
-
-
-    /**
-     * 诊断：在主进程中检查 WebView APK 是否包含可用的 ICU 数据文件 (assets/icudtl.dat)。
-     * <p>
-     * Chromium 渲染器启动时通过 setupConnection 从浏览器进程接收 ICU fd；若该 fd=-1
-     * 则说明浏览器进程打开 icudtl.dat 失败，渲染子进程会直接 SIGTRAP 崩溃。
-     * <ul>
-     *   <li>如果日志显示「compression=DEFLATED」：APK 以压缩方式存储了 ICU 数据，
-     *       AssetManager.openNonAssetFd 无法使用，需要换用未压缩打包的 APK。</li>
-     *   <li>如果日志显示「ICU 文件不存在」：该 APK 可能是 Trichrome 基础包，
-     *       ICU 在单独的 trichrome library APK 中，需要同时提供该 library APK。</li>
-     * </ul>
-     */
-    private static void diagIcuDataAccess(Context context, String webViewPkg, String apkPath) {
-        // 1. 直接检查 APK ZIP 结构
-        if (apkPath != null) {
-            try (ZipFile zf = new ZipFile(apkPath)) {
-                ZipEntry icuEntry = zf.getEntry("assets/icudtl.dat");
-                if (icuEntry != null) {
-                    boolean uncompressed = icuEntry.getMethod() == ZipEntry.STORED;
-                    Log.i(TAG, "[ICU诊断] APK 中存在 assets/icudtl.dat"
-                            + " compression=" + (uncompressed ? "STORED(可用)" : "DEFLATED(不可用)")
-                            + " size=" + icuEntry.getSize());
-                    if (!uncompressed) {
-                        Log.e(TAG, "[ICU诊断] icudtl.dat 是压缩存储，openNonAssetFd 会失败！"
-                                + "请使用 -0 icudtl.dat 重新打包 APK，或换用官方未压缩版本。");
-                    }
-                } else {
-                    Log.w(TAG, "[ICU诊断] APK 中 assets/icudtl.dat 不存在，列出 icu 相关条目：");
-                    java.util.Enumeration<? extends ZipEntry> entries = zf.entries();
-                    while (entries.hasMoreElements()) {
-                        ZipEntry e = entries.nextElement();
-                        if (e.getName().toLowerCase().contains("icu")) {
-                            Log.w(TAG, "  [ICU候选] " + e.getName()
-                                    + " method=" + e.getMethod() + " size=" + e.getSize());
-                        }
-                    }
-                    Log.e(TAG, "[ICU诊断] 未找到 icudtl.dat，APK 可能是 Trichrome 基础包，"
-                            + "需要同时提供 Trichrome Library APK。");
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "[ICU诊断] 打开 APK ZIP 失败: " + e.getMessage());
-            }
-        }
-
-        // 2. 用 AssetManager 实际测试能否获取 fd（主进程 WebViewFactory 走的就是这条路）
-        if (webViewPkg != null) {
-            try {
-                // 先清除 LoadedApk 缓存，保证 createPackageContext 用我们 hook 返回的
-                // ApplicationInfo（publicSourceDir=apkPath）建新 LoadedApk，
-                // 使 mResDir = apkPath 而非 null。
-                invalidateLoadedApkCache(webViewPkg);
-                Context wvCtx = context.createPackageContext(webViewPkg,
-                        Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY);
-
-                // 兜底：addAssetPath 绕过 ResourcesManager "not up to date" 检查
-                try {
-                    java.lang.reflect.Method addAssetPath =
-                            android.content.res.AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
-                    addAssetPath.setAccessible(true);
-                    int cookie = (int) addAssetPath.invoke(wvCtx.getAssets(), apkPath);
-                    Log.i(TAG, "[ICU诊断] addAssetPath cookie=" + cookie);
-                } catch (Exception e2) {
-                    Log.w(TAG, "[ICU诊断] addAssetPath 失败: " + e2.getMessage());
-                }
-
-                android.content.res.AssetFileDescriptor afd =
-                        wvCtx.getAssets().openNonAssetFd("assets/icudtl.dat");
-                Log.i(TAG, "[ICU诊断] AssetManager.openNonAssetFd 成功"
-                        + " fd=" + afd.getParcelFileDescriptor().getFd()
-                        + " offset=" + afd.getStartOffset()
-                        + " len=" + afd.getDeclaredLength()
-                        + " → ICU fd 应能正常传给渲染进程");
-                afd.close();
-            } catch (android.content.pm.PackageManager.NameNotFoundException e) {
-                Log.e(TAG, "[ICU诊断] createPackageContext 找不到包: " + webViewPkg, e);
-            } catch (Exception e) {
-                Log.e(TAG, "[ICU诊断] AssetManager.openNonAssetFd 失败: " + e.getMessage()
-                        + " → Chromium 无法获取 ICU fd，渲染进程将崩溃");
-            }
-        }
-    }
-
-    /**
-     * 清除 ActivityThread 中对指定包名 LoadedApk 的缓存。
-     * 详见 AbstractWebViewPackageManagerHook.invalidateLoadedApkCache 注释。
-     */
-    private static void invalidateLoadedApkCache(String packageName) {
-        try {
-            Class<?> atClass = Class.forName("android.app.ActivityThread");
-            java.lang.reflect.Method currentAt = atClass.getMethod("currentActivityThread");
-            Object at = currentAt.invoke(null);
-            if (at == null) return;
-            for (String fieldName : new String[]{"mPackages", "mResourcePackages"}) {
-                try {
-                    java.lang.reflect.Field f = atClass.getDeclaredField(fieldName);
-                    f.setAccessible(true);
-                    Object map = f.get(at);
-                    if (map instanceof java.util.Map) {
-                        ((java.util.Map<?, ?>) map).remove(packageName);
-                    }
-                } catch (Exception ignored) {
-                }
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "invalidateLoadedApkCache failed: " + e.getMessage());
-        }
     }
 
     private static void checkWebView(Context context) throws WebViewReplaceException {
