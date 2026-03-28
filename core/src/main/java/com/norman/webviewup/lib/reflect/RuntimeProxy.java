@@ -80,7 +80,13 @@ public abstract class RuntimeProxy {
                                             method.setAccessible(true);
                                         }
                                         mInvokeContextThreadLocal.set(invokeContext);
-                                        Object result = method.invoke(RuntimeProxy.this, invokeContext.args);
+                                        Object[] invokeArgs = invokeContext.args;
+                                        // 针对 fuzzy 模式：如果代理定义的方法只接受一个 Object[] 参数（例如 Object... args），
+                                        // 必须将系统的多参数数组整体包装为一个参数传递，否则会报 Wrong number of arguments
+                                        if (methodAnnotation.fuzzy() && method.getParameterTypes().length == 1 && method.getParameterTypes()[0] == Object[].class) {
+                                            invokeArgs = new Object[]{invokeContext.args};
+                                        }
+                                        Object result = method.invoke(RuntimeProxy.this, invokeArgs);
                                         invokeContext.setResult(result);
                                     } catch (Throwable e) {
                                         throw new ReflectException(e);
@@ -89,7 +95,7 @@ public abstract class RuntimeProxy {
                                     }
                                 }
                             };
-                            reflectProxy.addInvoke(invoke,false);
+                            reflectProxy.addInvoke(invoke, false, methodAnnotation.fuzzy());
                         }
                     }
                 }

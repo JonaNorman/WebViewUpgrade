@@ -170,8 +170,9 @@ public class RuntimeAccess<T> {
 
     private Object checkAssessObject(Class<?> reflectCls) {
         Object obj = assessObject;
-        if (obj != null && !Objects.equals(obj.getClass(), reflectCls)) {
-            throw new IllegalArgumentException(reflectCls + " is not same as " + assessObject.getClass());
+        // 使用 isAssignableFrom 允许子类或匿名内部类（例如 android.app.ActivityManager$3 继承自 android.util.Singleton）
+        if (obj != null && !reflectCls.isAssignableFrom(obj.getClass())) {
+            throw new IllegalArgumentException(reflectCls + " is not assignable from " + assessObject.getClass());
         }
         return obj;
     }

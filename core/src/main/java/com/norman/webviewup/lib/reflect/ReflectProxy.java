@@ -17,9 +17,11 @@ class ReflectProxy {
 
     private final Object mProxyLock = new Object();
 
+    /** 精确匹配表：方法名 + 参数类型签名 → Invoke */
+    private final Map<MethodSignature, Invoke> mInvokeMap = new HashMap<>();
 
-
-    private final Map<MethodSignature,Invoke> mInvokeMap = new HashMap<>();
+    /** 模糊匹配表：仅方法名 → Invoke（注解 fuzzy=true 时注册） */
+    private final Map<String, Invoke> mFuzzyInvokeMap = new HashMap<>();
 
     private Class<?>[] mAllInterfaces;
 
@@ -41,18 +43,34 @@ class ReflectProxy {
     }
 
     public void addInvoke(Invoke invoke) throws ReflectException {
-       addInvoke(invoke,true);
+       addInvoke(invoke, true, false);
     }
 
-    public void addInvoke(Invoke invoke,boolean override) throws ReflectException {
+    public void addInvoke(Invoke invoke, boolean override) throws ReflectException {
+        addInvoke(invoke, override, false);
+    }
+
+    /**
+     * @param invoke   要注册的拦截器
+     * @param override 是否覆盖已有的同签名精确条目
+     * @param fuzzy    true → 只按方法名模糊路由，忽略参数类型
+     */
+    public void addInvoke(Invoke invoke, boolean override, boolean fuzzy) throws ReflectException {
         if (invoke == null) return;
         synchronized (mProxyLock) {
             prepareAllInterface();
             try {
-                if (!override && mInvokeMap.containsKey(invoke.signature)){
-                    return;
+                if (fuzzy) {
+                    // 模糊：只以方法名为 key，覆盖策略同上
+                    if (override || !mFuzzyInvokeMap.containsKey(invoke.signature.name)) {
+                        mFuzzyInvokeMap.put(invoke.signature.name, invoke);
+                    }
+                } else {
+                    if (!override && mInvokeMap.containsKey(invoke.signature)) {
+                        return;
+                    }
+                    mInvokeMap.put(invoke.signature, invoke);
                 }
-                mInvokeMap.put(invoke.signature,invoke);
             } catch (Throwable throwable) {
                 throw new ReflectException(throwable);
             }
@@ -72,7 +90,7 @@ class ReflectProxy {
                         mAllInterfaces,
                         new InvocationHandler() {
                             @Override
-                            public Object invoke(Object proxyObject, Method method, Object[] args)  {
+                            public Object invoke(Object proxyObject, Method method, Object[] args) {
                                 InvokeContext invokeContext = new InvokeContext(
                                         mTargetObject,
                                         proxyObject,
@@ -80,14 +98,20 @@ class ReflectProxy {
                                         args,
                                         method);
 
+                                // 1. 先精确匹配（方法名 + 参数类型）
                                 Invoke invoke = mInvokeMap.get(invokeContext.signature);
+
+                                // 2. 精确失败 → 模糊兜底（仅按方法名）
+                                if (invoke == null) {
+                                    invoke = mFuzzyInvokeMap.get(method.getName());
+                                }
+
                                 if (invoke != null) {
                                     invoke.onInvoke(invokeContext);
                                 }
                                 return invokeContext.replace ?
                                         invokeContext.replaceResult :
                                         invokeContext.invoke();
-
                             }
                         });
             } catch (Throwable throwable) {

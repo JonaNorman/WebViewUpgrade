@@ -1,4 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <application>
+        <!--
+            沙盒渲染进程替身服务（Stub Sandboxed Process Services）
+            移至 core 模块声明，打包成 AAR 时会自动合并到接入该库的宿主 App 的 Manifest 中，
+            实现“无需手动编写配置即可接入”的无侵入式体验。
+        -->
+        <service
+            android:name=".service.stub.StubSandboxedProcessService0"
+            android:exported="true"
+            android:isolatedProcess="true"
+            android:externalService="true"
+            android:process=":sandboxed_process0" />
+
+        <service
+            android:name=".service.stub.StubSandboxedProcessService1"
+            android:exported="true"
+            android:isolatedProcess="true"
+            android:externalService="true"
+            android:process=":sandboxed_process1" />
+
+        <service
+            android:name=".service.stub.StubSandboxedProcessService2"
+            android:exported="true"
+            android:isolatedProcess="true"
+            android:externalService="true"
+            android:process=":sandboxed_process2" />
+
+        <service
+            android:name=".service.stub.StubSandboxedProcessService3"
+            android:exported="true"
+            android:isolatedProcess="true"
+            android:externalService="true"
+            android:process=":sandboxed_process3" />
+
+        <service
+            android:name=".service.stub.StubSandboxedProcessService4"
+            android:exported="true"
+            android:isolatedProcess="true"
+            android:externalService="true"
+            android:process=":sandboxed_process4" />
+    </application>
 </manifest>
