@@ -19,9 +19,9 @@ import androidx.appcompat.app.AlertDialog;
 import com.norman.webviewup.lib.UpgradeCallback;
 import com.norman.webviewup.lib.WebViewUpgrade;
 import com.norman.webviewup.lib.source.UpgradeAssetSource;
+import com.norman.webviewup.lib.source.UpgradeDownloadSource;
 import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
-import com.norman.webviewup.lib.source.download.UpgradeDownloadSource;
 import com.norman.webviewup.lib.util.ProcessUtils;
 import com.norman.webviewup.lib.util.VersionUtils;
 
@@ -230,9 +230,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         if (upgradeInfo.extraInfo.equals("网络")) {
             upgradeSource = new UpgradeDownloadSource(
                     getApplicationContext(),
-                    upgradeInfo.url,
-                    new File(getApplicationContext().getFilesDir(), upgradeInfo.packageName + "/" + upgradeInfo.versionName + ".apk")
-            );
+                    upgradeInfo.url);
         } else if (upgradeInfo.extraInfo.equals("内置")) {
             upgradeSource = new UpgradeAssetSource(
                     getApplicationContext(),

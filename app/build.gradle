@@ -54,6 +54,5 @@ dependencies {
 //    implementation 'io.github.jonanorman.android.webviewup:core:0.1.0'
 //    implementation 'io.github.jonanorman.android.webviewup:download-source:0.1.0'
     implementation project(":core")
-    implementation project(':download-source')
 
 }
