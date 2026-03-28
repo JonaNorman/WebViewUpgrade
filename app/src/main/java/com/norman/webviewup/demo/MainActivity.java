@@ -88,7 +88,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
                         "com.huawei.webview",
                         "14.0.0.331",
                         "https://ghfast.top/https://raw.githubusercontent.com/JonaNorman/ShareFile/main/com.huawei.webview_14.0.0.331_arm64-v8a_armeabi-v7a.zip",
-                        "网络")
+                        "网络"),
+                new UpgradeInfo(
+                        "com.google.android.webview",
+                        "146.0.7680.164",
+                        "com.google.android.webview_146.apk",
+                        "内置")
         ));
 
         UPGRADE_PACKAGE_MAP.put("x86", Arrays.asList(
