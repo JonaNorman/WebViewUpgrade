@@ -18,33 +18,17 @@ public abstract class PackageManagerProxy extends RuntimeProxy {
     }
 
 
-    @Method("getPackageInfo")
-    protected abstract PackageInfo getPackageInfo(String packageName, long flags, int userId);
+    @Method(value = "getPackageInfo", fuzzy = true)
+    protected abstract PackageInfo getPackageInfo(Object... args);
 
-    @Method("getPackageInfo")
-    protected abstract PackageInfo getPackageInfo(String packageName, int flags, int userId);
+    @Method(value = "getApplicationInfo", fuzzy = true)
+    protected abstract ApplicationInfo getApplicationInfo(Object... args);
 
+    @Method(value = "getServiceInfo", fuzzy = true)
+    protected abstract ServiceInfo getServiceInfo(Object... args);
 
-    @Method("getPackageInfo")
-    protected abstract PackageInfo getPackageInfo(String packageName, int flags);
-
-    @Method("getApplicationInfo")
-    protected abstract ApplicationInfo getApplicationInfo(String packageName, long flags, int userId);
-
-    @Method("getApplicationInfo")
-    protected abstract ApplicationInfo getApplicationInfo(String packageName, int flags, int userId);
-
-    @Method("getServiceInfo")
-    protected abstract ServiceInfo getServiceInfo(ComponentName component, int flags, int userId);
-
-    @Method("getServiceInfo")
-    protected abstract ServiceInfo getServiceInfo(ComponentName component, long flags, int userId);
-
-    @Method("getComponentEnabledSetting")
-    protected abstract int getComponentEnabledSetting(ComponentName componentName, int userId);
-
-    @Method("getComponentEnabledSetting")
-    protected abstract int getComponentEnabledSetting(ComponentName componentName);
+    @Method(value = "getComponentEnabledSetting", fuzzy = true)
+    protected abstract int getComponentEnabledSetting(Object... args);
 
     @Method("getInstallerPackageName")
     protected abstract String getInstallerPackageName(String packageName);

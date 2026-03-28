@@ -135,33 +135,38 @@ abstract class AbstractWebViewPackageManagerHook extends BinderHook {
     private final PackageManagerProxy proxy = new PackageManagerProxy() {
 
         @Override
-        protected PackageInfo getPackageInfo(String packageName, long flags, int userId) {
-            return getPackageInfo(packageName, (int) flags);
+        protected PackageInfo getPackageInfo(Object... args) {
+            if (args == null || args.length < 1 || !(args[0] instanceof String)) {
+                return (PackageInfo) invoke();
+            }
+            String packageName = (String) args[0];
+            int flags = 0;
+            if (args.length >= 2 && args[1] instanceof Number) {
+                flags = ((Number) args[1]).intValue();
+            }
+            if (packageName.equals(webViewPackageName)) {
+                PackageInfo packageInfo = getWebViewPackageInfo(flags);
+                if (packageInfo == null) {
+                    throw new RuntimeException("apkPath is not valid  " + apkPath);
+                }
+                return packageInfo;
+            }
+            return (PackageInfo) invoke();
         }
 
         @Override
-        protected PackageInfo getPackageInfo(String packageName, int flags, int userId) {
-            return getPackageInfo(packageName, flags);
-        }
-
-        @Override
-        protected ApplicationInfo getApplicationInfo(String packageName, long flags, int userId) {
+        protected ApplicationInfo getApplicationInfo(Object... args) {
+            if (args == null || args.length < 1 || !(args[0] instanceof String)) {
+                return (ApplicationInfo) invoke();
+            }
+            String packageName = (String) args[0];
+            int flags = 0;
+            if (args.length >= 2 && args[1] instanceof Number) {
+                flags = ((Number) args[1]).intValue();
+            }
             if (packageName.equals(webViewPackageName)) {
                 // 清除 LoadedApk 缓存，保证下次 createPackageContext 用我们的 AI 重新建
                 // LoadedApk，从而 ResourcesKey.mResDir = apkPath 而非 null。
-                invalidateLoadedApkCache(webViewPackageName);
-                ApplicationInfo ai = getWebViewApplicationInfo((int) flags);
-                if (ai == null) {
-                    throw new RuntimeException("apkPath is not valid  " + apkPath);
-                }
-                return ai;
-            }
-            return (ApplicationInfo) invoke();
-        }
-
-        @Override
-        protected ApplicationInfo getApplicationInfo(String packageName, int flags, int userId) {
-            if (packageName.equals(webViewPackageName)) {
                 invalidateLoadedApkCache(webViewPackageName);
                 ApplicationInfo ai = getWebViewApplicationInfo(flags);
                 if (ai == null) {
@@ -173,17 +178,24 @@ abstract class AbstractWebViewPackageManagerHook extends BinderHook {
         }
 
         @Override
-        protected int getComponentEnabledSetting(ComponentName componentName, int userId) {
-            return getComponentEnabledSetting(componentName);
+        protected int getComponentEnabledSetting(Object... args) {
+            if (args == null || args.length < 1 || !(args[0] instanceof ComponentName)) {
+                return (int) invoke();
+            }
+            ComponentName componentName = (ComponentName) args[0];
+            if (componentName.getPackageName().equals(webViewPackageName)) {
+                return PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
+            } else {
+                return (int) invoke();
+            }
         }
 
         @Override
-        protected ServiceInfo getServiceInfo(ComponentName component, int flags, int userId) {
-            return handleGetServiceInfo(component);
-        }
-
-        @Override
-        protected ServiceInfo getServiceInfo(ComponentName component, long flags, int userId) {
+        protected ServiceInfo getServiceInfo(Object... args) {
+            if (args == null || args.length < 1 || !(args[0] instanceof ComponentName)) {
+                return (ServiceInfo) invoke();
+            }
+            ComponentName component = (ComponentName) args[0];
             return handleGetServiceInfo(component);
         }
 
@@ -211,26 +223,7 @@ abstract class AbstractWebViewPackageManagerHook extends BinderHook {
             return (ServiceInfo) invoke();
         }
 
-        @Override
-        protected PackageInfo getPackageInfo(String packageName, int flags) {
-            if (packageName.equals(webViewPackageName)) {
-                PackageInfo packageInfo = getWebViewPackageInfo(flags);
-                if (packageInfo == null) {
-                    throw new RuntimeException("apkPath is not valid  " + apkPath);
-                }
-                return packageInfo;
-            }
-            return (PackageInfo) invoke();
-        }
 
-        @Override
-        protected int getComponentEnabledSetting(ComponentName componentName) {
-            if (componentName.getPackageName().equals(webViewPackageName)) {
-                return PackageManager.COMPONENT_ENABLED_STATE_DISABLED;
-            } else {
-                return (int) invoke();
-            }
-        }
 
         @Override
         protected String getInstallerPackageName(String packageName) {
