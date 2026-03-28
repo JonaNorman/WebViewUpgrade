@@ -37,14 +37,39 @@ public class UpgradeDownloadSource extends UpgradePathSource implements Download
     private DownloadEntity downloadEntity;
 
 
+    /**
+     * 老 API 兼容
+     * 传入 File，代表使用外部指定模式
+     * @deprecated 建议使用不带 File 参数的重载方法，让框架自动管理沙盒存储
+     */
+    @Deprecated
     public UpgradeDownloadSource(Context context, String url, File file, int threadNum) {
-        super(context,file.getPath());
+        super(context, file.getPath(), true);
         this.url = url;
         this.threadNum = threadNum;
     }
 
+    /**
+     * 新架构用法
+     * 自动分配沙盒空间，基于 URL 标识
+     */
+    public UpgradeDownloadSource(Context context, String url, int threadNum) {
+        super(context, url);
+        this.url = url;
+        this.threadNum = threadNum;
+    }
+
+    /**
+     * 老 API 兼容
+     * @deprecated 请使用 {@link #UpgradeDownloadSource(Context, String)}
+     */
+    @Deprecated
     public UpgradeDownloadSource(Context context, String url, File file) {
         this(context, url, file, MAX_DOWNLOAD_THREAD_NUM);
+    }
+
+    public UpgradeDownloadSource(Context context, String url) {
+        this(context, url, MAX_DOWNLOAD_THREAD_NUM);
     }
 
 

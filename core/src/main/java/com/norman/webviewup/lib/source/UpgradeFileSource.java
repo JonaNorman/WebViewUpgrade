@@ -10,8 +10,12 @@ import java.io.IOException;
 
 public class UpgradeFileSource extends UpgradePathSource {
 
+    private final File sourceFile;
+
     public UpgradeFileSource(Context context, File file) {
-        super(context, file.getPath());
+        // 使用 文件路径 + 最后修改时间 + 大小 作为标识，保障外部文件更新时能够重新拷贝
+        super(context, file.getPath() + "_" + file.lastModified() + "_" + file.length());
+        this.sourceFile = file;
     }
 
 
@@ -20,11 +24,20 @@ public class UpgradeFileSource extends UpgradePathSource {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                if (!FileUtils.existFile(getApkPath())) {
-                    error(new IOException("file not exist, path is " + getApkPath()));
-                } else {
-                    success();
+                if (!sourceFile.exists()) {
+                    error(new IOException("file not exist, path is " + sourceFile.getAbsolutePath()));
+                    return;
                 }
+                
+                if (!FileUtils.existFile(getApkPath())) {
+                    try {
+                        FileUtils.copyFile(sourceFile.getAbsolutePath(), getApkPath());
+                    } catch (IOException e) {
+                        error(new IOException("Failed to copy file to internal workspace", e));
+                        return;
+                    }
+                }
+                success();
             }
         }).start();
 

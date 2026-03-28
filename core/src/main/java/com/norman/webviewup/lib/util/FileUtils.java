@@ -210,4 +210,47 @@ public class FileUtils {
     public static boolean createFile(String path) {
         return createFile(new File(path));
     }
+
+    public static void copyFile(String srcPath, String destPath) throws IOException {
+        createFile(destPath);
+        try (java.io.FileInputStream in = new java.io.FileInputStream(srcPath);
+             java.io.FileOutputStream out = new java.io.FileOutputStream(destPath);
+             java.nio.channels.FileChannel inChannel = in.getChannel();
+             java.nio.channels.FileChannel outChannel = out.getChannel()) {
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+        }
+    }
+
+    public static void makeFileWorldReadable(android.content.Context context, File file) {
+        file.setReadable(true, false);
+        file.setWritable(false, false);
+
+        File dataDir = context.getDataDir();
+        File parent = file.getParentFile();
+        while (parent != null) {
+            parent.setExecutable(true, false);
+            if (parent.equals(dataDir)) {
+                break;
+            }
+            parent = parent.getParentFile();
+        }
+        android.util.Log.d("FileUtils", "APK file made world readable and parent directories searchable: " + file.getAbsolutePath());
+    }
+
+    public static String md5(String string) {
+        if (TextUtils.isEmpty(string)) {
+            return "";
+        }
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
+            byte[] bytes = md.digest(string.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : bytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return String.valueOf(string.hashCode());
+        }
+    }
 }

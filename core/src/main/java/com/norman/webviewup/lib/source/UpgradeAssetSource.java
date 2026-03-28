@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 
 import com.norman.webviewup.lib.util.ApksUtils;
 import com.norman.webviewup.lib.util.FileUtils;
+import com.norman.webviewup.lib.util.VersionUtils;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -20,9 +21,23 @@ public class UpgradeAssetSource extends UpgradePathSource {
 
     private final String assetName;
 
-
+    /**
+     * 兼容老 API
+     * 用户指定了外置的 File 路径
+     * @deprecated 建议使用 {@link #UpgradeAssetSource(Context, String)} 让框架自动管理沙盒
+     */
+    @Deprecated
     public UpgradeAssetSource(Context context, @NonNull String assetName, @NonNull File file) {
-        super(context,file.getPath());
+        super(context, file.getPath(), true);
+        this.assetName = assetName;
+    }
+
+    /**
+     * 新架构推荐用法
+     * 自动管理沙盒缓存，并感知宿主 App 的版本更新
+     */
+    public UpgradeAssetSource(Context context, @NonNull String assetName) {
+        super(context, assetName + "_" + VersionUtils.getAppVersionCode(context));
         this.assetName = assetName;
     }
 

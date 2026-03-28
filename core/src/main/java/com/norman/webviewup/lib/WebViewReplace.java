@@ -131,13 +131,6 @@ public class WebViewReplace {
                 SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
             }
             
-            if (apkPath != null) {
-                File file = new File(apkPath);
-                if(file.exists()){
-                    makeFileWorldReadable(context, file);
-                }
-            }
-            
             checkWebView(context);
             REPLACE_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
             replaceSuccess = true;
@@ -217,39 +210,6 @@ public class WebViewReplace {
         } catch (Throwable ignore) {
         }
         return null;
-    }
-
-
-    /**
-     * 将文件设为世界可读，并将其父目录链设为世界可搜索。
-     *
-     * 背景：
-     *   isolated_app（Android 沙盒进程）的 UID 与宿主 App 不同，属于 Unix 文件权限中的 "others"。
-     *   Context.getFilesDir() 创建的目录默认权限是 700（rwx------），其他 UID 无法进入。
-     *   AOSP SELinux sepolicy 中 isolated_app 对 app_data_file 有 { read getattr open search } 权限，
-     *   所以只要 DAC 放行（目录可搜索 + 文件可读），沙盒进程就能直接通过路径读取文件。
-     *
-     * @param context 宿主 App 的 Context，用于获取 dataDir 作为向上遍历的终止条件
-     * @param file    需要被沙盒进程读取的目标文件
-     */
-    private static void makeFileWorldReadable(Context context, File file) {
-        // 1. 文件自身设为世界可读（不可写）
-        file.setReadable(true, false);   // chmod o+r
-        file.setWritable(false, false);  // 确保不可写
-
-        // 2. 父目录链向上遍历，每一层都设为世界可搜索（可进入）
-        //    到 dataDir 为止，不能再往上设置
-        File dataDir = context.getDataDir();
-        File parent = file.getParentFile();
-        while (parent != null) {
-            parent.setExecutable(true, false);  // chmod o+x（允许搜索/进入目录）
-            parent.setReadable(true, false);    // chmod o+r（允许列出目录内容）
-            if (parent.equals(dataDir)) {
-                break;
-            }
-            parent = parent.getParentFile();
-        }
-        Log.d("WebViewReplace", "APK 文件及父目录链已设为世界可读/可搜索: " + file.getAbsolutePath());
     }
 }
 
