@@ -221,7 +221,12 @@ public class FileUtils {
         file.setReadable(true, false);
         file.setWritable(false, false);
 
-        File dataDir = context.getDataDir();
+        File dataDir;
+        if (android.os.Build.VERSION.SDK_INT >= 24) {
+            dataDir = context.getDataDir();
+        } else {
+            dataDir = new File(context.getApplicationInfo().dataDir);
+        }
         File parent = file.getParentFile();
         while (parent != null) {
             parent.setExecutable(true, false);
