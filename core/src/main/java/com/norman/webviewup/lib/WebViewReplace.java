@@ -12,6 +12,7 @@ import android.util.Log;
 import android.webkit.WebView;
 
 import com.norman.webviewup.lib.hook.PackageManagerServiceHook;
+import com.norman.webviewup.lib.hook.ReplaceTarget;
 import com.norman.webviewup.lib.hook.WebViewUpdateServiceHook;
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.service.interfaces.IServiceManager;
@@ -97,18 +98,16 @@ public class WebViewReplace {
         WebViewUpdateServiceHook updateServiceHook = null;
         boolean replaceSuccess = false;
         try {
-            if (apkPath != null && libsPath != null) {
-                if (sManagerHook == null) {
-                    sManagerHook = new PackageManagerServiceHook(context, packageInfo.packageName, apkPath, libsPath);
-                }
+            ReplaceTarget target = ReplaceTarget.from(packageInfo, apkPath, libsPath);
+
+            if (target.hasLocalApk() && sManagerHook == null) {
+                sManagerHook = new PackageManagerServiceHook(context, target);
             }
 
             updateServiceHook = new WebViewUpdateServiceHook(context, packageInfo.packageName);
 
             if (sActivityManagerHook == null) {
-                sActivityManagerHook = new ActivityManagerHook(context, packageInfo.packageName, apkPath, libsPath);
-            } else {
-                sActivityManagerHook.update(packageInfo.packageName, apkPath, libsPath);
+                sActivityManagerHook = new ActivityManagerHook(context, target);
             }
 
             if (sManagerHook != null) {

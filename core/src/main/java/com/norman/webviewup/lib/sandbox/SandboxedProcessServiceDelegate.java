@@ -12,6 +12,7 @@ import android.os.IBinder;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.norman.webviewup.lib.hook.ReplaceTarget;
 import com.norman.webviewup.lib.hook.SandboxedProcessPackageManagerHook;
 import com.norman.webviewup.lib.util.ProcessUtils;
 
@@ -120,7 +121,8 @@ public class SandboxedProcessServiceDelegate {
                 return;
             }
             SandboxedProcessPackageManagerHook hook =
-                    new SandboxedProcessPackageManagerHook(appContext, webViewPkg, apkPath, libsPath);
+                    new SandboxedProcessPackageManagerHook(appContext,
+                            ReplaceTarget.localPackage(webViewPkg, apkPath, libsPath));
             hook.hook();
             sSandboxPmsHook = hook;
             Log.i(TAG, "沙盒子进程 PMS Hook 已安装, webViewPkg=" + webViewPkg);

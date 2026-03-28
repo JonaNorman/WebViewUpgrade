@@ -9,6 +9,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.norman.webviewup.lib.WebViewReplace;
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.sandbox.SandboxedProcessServiceDelegate;
@@ -52,32 +54,23 @@ public class ActivityManagerHook extends BinderHook {
 
     private final Context context;
     private final String hostPackageName;
-    private String targetWebViewPackage;
-    private String webViewApkPath;
-    private String webViewLibsPath;
+    private final String targetWebViewPackage;
+    private final String webViewApkPath;
+    private final String webViewLibsPath;
 
     private Object mOriginalAm;
     private ISingleton mSingleton;
 
     /**
-     * @param context              宿主 App Context
-     * @param targetWebViewPackage 目标热替换 WebView 包名
-     * @param webViewApkPath       热替换后的 WebView APK 文件路径
-     * @param webViewLibsPath      WebView 原生库目录路径
+     * @param context 宿主 App Context
+     * @param target  本次替换目标快照（包名必填；apk/libs 可为 null，与仅已安装包替换路径一致）
      */
-    public ActivityManagerHook(Context context, String targetWebViewPackage,
-                               String webViewApkPath, String webViewLibsPath) {
+    public ActivityManagerHook(@NonNull Context context, @NonNull ReplaceTarget target) {
         this.context = context;
-        this.targetWebViewPackage = targetWebViewPackage;
-        this.webViewApkPath = webViewApkPath;
-        this.webViewLibsPath = webViewLibsPath;
+        this.targetWebViewPackage = target.getWebViewPackageName();
+        this.webViewApkPath = target.getApkPath();
+        this.webViewLibsPath = target.getLibsPath();
         this.hostPackageName = context.getPackageName();
-    }
-
-    public void update(String targetWebViewPackage, String webViewApkPath, String webViewLibsPath) {
-        this.targetWebViewPackage = targetWebViewPackage;
-        this.webViewApkPath = webViewApkPath;
-        this.webViewLibsPath = webViewLibsPath;
     }
 
     @Override
