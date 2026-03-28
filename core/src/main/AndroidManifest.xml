@@ -9,37 +9,27 @@
         -->
         <service
             android:name=".service.stub.StubSandboxedProcessService0"
-            android:exported="true"
-            android:isolatedProcess="true"
-            android:externalService="true"
+            android:exported="false"
             android:process=":sandboxed_process0" />
 
         <service
             android:name=".service.stub.StubSandboxedProcessService1"
-            android:exported="true"
-            android:isolatedProcess="true"
-            android:externalService="true"
+            android:exported="false"
             android:process=":sandboxed_process1" />
 
         <service
             android:name=".service.stub.StubSandboxedProcessService2"
-            android:exported="true"
-            android:isolatedProcess="true"
-            android:externalService="true"
+            android:exported="false"
             android:process=":sandboxed_process2" />
 
         <service
             android:name=".service.stub.StubSandboxedProcessService3"
-            android:exported="true"
-            android:isolatedProcess="true"
-            android:externalService="true"
+            android:exported="false"
             android:process=":sandboxed_process3" />
 
         <service
             android:name=".service.stub.StubSandboxedProcessService4"
-            android:exported="true"
-            android:isolatedProcess="true"
-            android:externalService="true"
+            android:exported="false"
             android:process=":sandboxed_process4" />
     </application>
 </manifest>

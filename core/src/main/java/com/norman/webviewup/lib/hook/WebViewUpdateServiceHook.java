@@ -74,7 +74,7 @@ public class WebViewUpdateServiceHook extends BinderHook {
 
         @Override
         protected boolean isMultiProcessEnabled() {
-            return false;
+            return true;
         }
     };
 

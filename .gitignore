@@ -33,3 +33,4 @@ google-services.json
 *.hprof
 /app/release
 /.roo
+.DS_Store
