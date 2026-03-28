@@ -41,6 +41,17 @@ public class UpgradeAssetSource extends UpgradePathSource {
         this.assetName = assetName;
     }
 
+    /**
+     * 指定明确的 assets 版本标识，避免 App 升级导致的无意义复制
+     * @param context
+     * @param assetName assets 文件名
+     * @param assetVersion 该 assets 文件的版本号或 MD5（当此值改变时才会重新复制）
+     */
+    public UpgradeAssetSource(Context context, @NonNull String assetName, @NonNull String assetVersion) {
+        super(context, assetName + "_" + assetVersion);
+        this.assetName = assetName;
+    }
+
     private final Runnable copyAssetRunnable = new Runnable() {
         @Override
         public void run() {

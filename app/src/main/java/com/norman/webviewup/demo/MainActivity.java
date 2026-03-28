@@ -234,9 +234,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
         } else if (upgradeInfo.extraInfo.equals("内置")) {
             upgradeSource = new UpgradeAssetSource(
                     getApplicationContext(),
-                    upgradeInfo.url,
-                    new File(getApplicationContext().getFilesDir(), upgradeInfo.packageName + "/" + upgradeInfo.versionName + ".apk")
-            );
+                    upgradeInfo.url);
         } else if (upgradeInfo.extraInfo.equals("安装包")) {
             upgradeSource = new UpgradePackageSource(
                     getApplicationContext(),
