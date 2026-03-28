@@ -85,11 +85,7 @@ public class FileUtils {
         copyFile(fileInputStream, outputFile, true);
     }
 
-    public static void copyFile(String srcPath,
-                                String outputPath) {
 
-        copyFile(new File(srcPath), new File(outputPath));
-    }
 
     public static void copyFile(File srcFile,
                                 FileOutputStream fileOutputStream, boolean close) {
