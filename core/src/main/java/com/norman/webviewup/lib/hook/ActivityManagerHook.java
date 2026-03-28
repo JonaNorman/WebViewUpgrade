@@ -22,8 +22,6 @@ import com.norman.webviewup.lib.service.interfaces.ISingleton;
 import com.norman.webviewup.lib.service.proxy.ActivityManagerProxy;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -50,13 +48,12 @@ public class ActivityManagerHook extends BinderHook {
     private static final String STUB_SERVICE_CLASS_PREFIX =
             "com.norman.webviewup.lib.sandbox.stub.Stub" + SANDBOX_SERVICE_NAME;
 
-    private static final int MAX_STUB_SERVICES = 5;
-
     private final Context context;
     private final String hostPackageName;
     private final String targetWebViewPackage;
     private final String webViewApkPath;
     private final String webViewLibsPath;
+    private final int maxStubServices;
 
     private Object mOriginalAm;
     private ISingleton mSingleton;
@@ -71,6 +68,7 @@ public class ActivityManagerHook extends BinderHook {
         this.webViewApkPath = target.getApkPath();
         this.webViewLibsPath = target.getLibsPath();
         this.hostPackageName = context.getPackageName();
+        this.maxStubServices = ActivityManagerHookPolicy.resolveMaxStubServices(context);
     }
 
     @Override
@@ -186,7 +184,15 @@ public class ActivityManagerHook extends BinderHook {
         }
 
         String className = component.getClassName();
-        if (className == null || !className.contains(SANDBOX_SERVICE_NAME)) {
+        if (className == null) {
+            return false;
+        }
+        Pattern customPattern = ActivityManagerHookPolicy.getSandboxServiceClassPattern();
+        if (customPattern != null) {
+            if (!customPattern.matcher(className).find()) {
+                return false;
+            }
+        } else if (!className.contains(SANDBOX_SERVICE_NAME)) {
             return false;
         }
 
@@ -200,7 +206,7 @@ public class ActivityManagerHook extends BinderHook {
             }
         }
 
-        int stubIndex = sandboxIndex % MAX_STUB_SERVICES;
+        int stubIndex = maxStubServices > 0 ? sandboxIndex % maxStubServices : 0;
         String stubClassName = STUB_SERVICE_CLASS_PREFIX + stubIndex;
         ComponentName stubComponent = new ComponentName(hostPackageName, stubClassName);
 
@@ -281,8 +287,8 @@ public class ActivityManagerHook extends BinderHook {
      */
     private Object callBindServiceOnRealAM(Object[] originalArgs) {
         try {
-            // 遍历 IActivityManager 的方法，找到 bindService
-            Method bindServiceMethod = findBindServiceMethod();
+            Method bindServiceMethod = BindServiceArgsAdapter.findBestBindServiceMethod(
+                    mOriginalAm, originalArgs);
             if (bindServiceMethod == null) {
                 debugTrace("H2", "callBindServiceOnRealAM", "bindService method not found",
                         summarizeArgs(originalArgs));
@@ -292,7 +298,8 @@ public class ActivityManagerHook extends BinderHook {
 
             debugTrace("H2", "callBindServiceOnRealAM", "selected bindService method",
                     summarizeMethod(bindServiceMethod));
-            Object[] adaptedArgs = adaptArgsForBindService(originalArgs, bindServiceMethod);
+            Object[] adaptedArgs = BindServiceArgsAdapter.adapt(
+                    originalArgs, bindServiceMethod, hostPackageName);
             debugTrace("H1", "callBindServiceOnRealAM", "adapted args",
                     summarizeArgs(adaptedArgs));
             Log.i(TAG, "bindService method=" + summarizeMethod(bindServiceMethod)
@@ -305,176 +312,6 @@ public class ActivityManagerHook extends BinderHook {
             Log.e(TAG, "转调 bindService 失败", t);
             return null;
         }
-    }
-
-    private Method findBindServiceMethod() {
-        try {
-            Class<?> amClass = mOriginalAm.getClass();
-            // 查找所有接口中的 bindService 方法
-            for (Class<?> iface : amClass.getInterfaces()) {
-                for (Method m : iface.getDeclaredMethods()) {
-                    if ("bindService".equals(m.getName())) {
-                        return m;
-                    }
-                }
-            }
-            // 没有在接口上找到，尝试直接从类查找
-            for (Method m : amClass.getMethods()) {
-                if ("bindService".equals(m.getName())) {
-                    return m;
-                }
-            }
-        } catch (Throwable t) {
-            Log.e(TAG, "查找 bindService 方法失败", t);
-        }
-        return null;
-    }
-
-    /**
-     * 将 bindIsolatedService 的参数数组适配成 bindService 的参数。
-     * 核心区别：去掉 instanceName（String 类型）参数，清除 BIND_EXTERNAL_SERVICE flag。
-     * <p>
-     * bindIsolatedService: caller, token, intent, resolvedType, conn, flags, instanceName, pkg, userId
-     * bindService:         caller, token, intent, resolvedType, conn, flags, pkg, userId
-     */
-    private Object[] adaptArgsForBindService(Object[] srcArgs, Method bindServiceMethod) {
-        int targetParamCount = bindServiceMethod.getParameterTypes().length;
-        Class<?>[] targetTypes = bindServiceMethod.getParameterTypes();
-        List<Object> mutable = new ArrayList<>();
-        if (srcArgs != null) {
-            for (Object arg : srcArgs) {
-                mutable.add(arg);
-            }
-        }
-
-        // bindServiceInstance 相比 bindService 额外携带 instanceName，优先删除该参数。
-        while (mutable.size() > targetParamCount) {
-            int removeIndex = findInstanceNameIndex(mutable);
-            if (removeIndex < 0) {
-                removeIndex = findNullableGapIndex(mutable);
-            }
-            if (removeIndex < 0) {
-                // 兜底：删除 flags 后第一个 String（最接近 instanceName 的位置）
-                int flagsIndex = findFlagsIndex(mutable);
-                removeIndex = (flagsIndex >= 0 && flagsIndex + 1 < mutable.size()) ? flagsIndex + 1 : mutable.size() - 1;
-            }
-            mutable.remove(removeIndex);
-        }
-
-        Object[] result = new Object[targetParamCount];
-        for (int i = 0; i < targetParamCount; i++) {
-            Object value = i < mutable.size() ? mutable.get(i) : null;
-            result[i] = coerceValueForType(value, targetTypes[i]);
-        }
-
-        clearExternalServiceFlag(result, targetTypes);
-        return result;
-    }
-
-    private void clearExternalServiceFlag(Object[] args, Class<?>[] types) {
-        for (int i = 0; i < args.length; i++) {
-            if (args[i] instanceof Integer) {
-                int flags = (int) args[i];
-                // BIND_EXTERNAL_SERVICE: old value 0x00800000, new value on Android 14+ = 0x80000000
-                args[i] = flags & ~0x00800000 & 0x7FFFFFFF;
-                return;
-            } else if (args[i] instanceof Long) {
-                long flags = (long) args[i];
-                // Clear both old (0x00800000) and new (0x80000000) BIND_EXTERNAL_SERVICE values
-                args[i] = flags & ~0x00800000L & ~0x80000000L;
-                return;
-            }
-        }
-    }
-
-    private int findFlagsIndex(List<Object> args) {
-        for (int i = 0; i < args.size(); i++) {
-            Object value = args.get(i);
-            if (value instanceof Long || value instanceof Integer) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private int findUserIdIndex(List<Object> args) {
-        for (int i = args.size() - 1; i >= 0; i--) {
-            Object value = args.get(i);
-            if (value instanceof Integer) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private int findInstanceNameIndex(List<Object> args) {
-        int flagsIndex = findFlagsIndex(args);
-        int userIdIndex = findUserIdIndex(args);
-        if (flagsIndex < 0 || userIdIndex <= flagsIndex) {
-            return -1;
-        }
-        for (int i = flagsIndex + 1; i < userIdIndex; i++) {
-            Object value = args.get(i);
-            if (!(value instanceof String)) {
-                continue;
-            }
-            String text = (String) value;
-            // callingPackage 通常等于宿主包名，instanceName/featureId 一般不同。
-            if (text != null && text.equals(hostPackageName)) {
-                continue;
-            }
-            return i;
-        }
-        return -1;
-    }
-
-    private int findNullableGapIndex(List<Object> args) {
-        int flagsIndex = findFlagsIndex(args);
-        int userIdIndex = findUserIdIndex(args);
-        if (flagsIndex < 0 || userIdIndex <= flagsIndex) {
-            return -1;
-        }
-        for (int i = flagsIndex + 1; i < userIdIndex; i++) {
-            if (args.get(i) == null) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private Object coerceValueForType(Object value, Class<?> targetType) {
-        if (targetType == long.class || targetType == Long.class) {
-            if (value instanceof Number) {
-                return ((Number) value).longValue();
-            }
-            return 0L;
-        }
-        if (targetType == int.class || targetType == Integer.class) {
-            if (value instanceof Number) {
-                return ((Number) value).intValue();
-            }
-            return 0;
-        }
-        if (targetType == boolean.class || targetType == Boolean.class) {
-            if (value instanceof Boolean) {
-                return value;
-            }
-            return false;
-        }
-        if (value == null) {
-            return null;
-        }
-        if (targetType.isAssignableFrom(value.getClass())) {
-            return value;
-        }
-        return value;
-    }
-
-    private boolean isBoxedMatch(Class<?> expected, Object value) {
-        if (expected == int.class) return value instanceof Integer;
-        if (expected == long.class) return value instanceof Long;
-        if (expected == boolean.class) return value instanceof Boolean;
-        return false;
     }
 
     private String summarizeMethod(Method m) {

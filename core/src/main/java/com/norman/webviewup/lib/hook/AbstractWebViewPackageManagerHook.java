@@ -165,7 +165,7 @@ abstract class AbstractWebViewPackageManagerHook extends BinderHook {
                 flags = ((Number) args[1]).intValue();
             }
             if (packageName.equals(webViewPackageName)) {
-                // 清除 LoadedApk 缓存，保证下次 createPackageContext 用我们的 AI 重新建
+                // 清除 LoadedApk 缓存，保证下次 createPackageContext 用我们的重新建
                 // LoadedApk，从而 ResourcesKey.mResDir = apkPath 而非 null。
                 invalidateLoadedApkCache(webViewPackageName);
                 ApplicationInfo ai = getWebViewApplicationInfo(flags);
