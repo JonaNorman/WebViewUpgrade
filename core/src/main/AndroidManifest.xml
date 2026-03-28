@@ -10,27 +10,27 @@
             实现“无需手动编写配置即可接入”的无侵入式体验。
         -->
         <service
-            android:name=".service.stub.StubSandboxedProcessService0"
+            android:name=".sandbox.stub.StubSandboxedProcessService0"
             android:exported="false"
             android:process=":sandboxed_process0" />
 
         <service
-            android:name=".service.stub.StubSandboxedProcessService1"
+            android:name=".sandbox.stub.StubSandboxedProcessService1"
             android:exported="false"
             android:process=":sandboxed_process1" />
 
         <service
-            android:name=".service.stub.StubSandboxedProcessService2"
+            android:name=".sandbox.stub.StubSandboxedProcessService2"
             android:exported="false"
             android:process=":sandboxed_process2" />
 
         <service
-            android:name=".service.stub.StubSandboxedProcessService3"
+            android:name=".sandbox.stub.StubSandboxedProcessService3"
             android:exported="false"
             android:process=":sandboxed_process3" />
 
         <service
-            android:name=".service.stub.StubSandboxedProcessService4"
+            android:name=".sandbox.stub.StubSandboxedProcessService4"
             android:exported="false"
             android:process=":sandboxed_process4" />
     </application>

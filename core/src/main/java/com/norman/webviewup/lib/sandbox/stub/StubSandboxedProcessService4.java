@@ -1,12 +1,12 @@
-package com.norman.webviewup.lib.service.stub;
+package com.norman.webviewup.lib.sandbox.stub;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
-import com.norman.webviewup.lib.service.SandboxedProcessServiceDelegate;
+import com.norman.webviewup.lib.sandbox.SandboxedProcessServiceDelegate;
 
-public class StubSandboxedProcessService1 extends Service {
+public class StubSandboxedProcessService4 extends Service {
 
     private final SandboxedProcessServiceDelegate mDelegate =
             new SandboxedProcessServiceDelegate();

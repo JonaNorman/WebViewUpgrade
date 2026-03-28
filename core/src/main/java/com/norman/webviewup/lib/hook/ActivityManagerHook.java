@@ -11,7 +11,7 @@ import android.util.Log;
 
 import com.norman.webviewup.lib.WebViewReplace;
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
-import com.norman.webviewup.lib.service.SandboxedProcessServiceDelegate;
+import com.norman.webviewup.lib.sandbox.SandboxedProcessServiceDelegate;
 import com.norman.webviewup.lib.service.binder.BinderHook;
 import com.norman.webviewup.lib.service.binder.ProxyBinder;
 import com.norman.webviewup.lib.service.interfaces.IActivityManager;
@@ -46,7 +46,7 @@ public class ActivityManagerHook extends BinderHook {
             Pattern.compile(SANDBOX_SERVICE_NAME + "(\\d+)$");
 
     private static final String STUB_SERVICE_CLASS_PREFIX =
-            "com.norman.webviewup.lib.service.stub.Stub" + SANDBOX_SERVICE_NAME;
+            "com.norman.webviewup.lib.sandbox.stub.Stub" + SANDBOX_SERVICE_NAME;
 
     private static final int MAX_STUB_SERVICES = 5;
 
