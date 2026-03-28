@@ -54,4 +54,12 @@ public class ApksUtils {
             }
         }
     }
+
+    public static boolean isValidApk(android.content.Context context, String path) {
+        try {
+            return context.getPackageManager().getPackageArchiveInfo(path, 0) != null;
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
 }

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.text.TextUtils;
 
 import com.norman.webviewup.lib.util.FileUtils;
+import com.norman.webviewup.lib.util.ApksUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -137,7 +138,7 @@ public class UpgradeDownloadSource extends UpgradePathSource {
         FileUtils.createFile(getApkPath());
 
         try {
-            if (isValidApk(tempPath)) {
+            if (ApksUtils.isValidApk(getContext(), tempPath)) {
                 try (BufferedInputStream bufferedInput = new BufferedInputStream(new FileInputStream(tempPath));
                      BufferedOutputStream bufferedOutput = new BufferedOutputStream(new FileOutputStream(getApkPath()))) {
                     copyBufferStream(bufferedInput, bufferedOutput);
@@ -190,13 +191,5 @@ public class UpgradeDownloadSource extends UpgradePathSource {
             bufferedOutput.write(buffer, 0, count);
         }
         bufferedOutput.flush();
-    }
-
-    private boolean isValidApk(String path) {
-        try {
-            return getContext().getPackageManager().getPackageArchiveInfo(path, 0) != null;
-        } catch (Throwable ignore) {
-            return false;
-        }
     }
 }
