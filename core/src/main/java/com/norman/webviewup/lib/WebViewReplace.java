@@ -34,7 +34,7 @@ public class WebViewReplace {
     /** 持久的 PMS Hook，多进程模式下 Chromium 可能在运行时查询 WebView 包组件信息 */
     private static PackageManagerServiceHook sManagerHook;
 
-    public synchronized static void replace(Context context, String apkPath,String libsPath) throws WebViewReplaceException {
+    public synchronized static void replace(Context context, String apkPath, String libsPath) throws WebViewReplaceException {
         try {
             if (context == null) {
                 throw new WebViewReplaceException("context is null");
@@ -50,10 +50,9 @@ public class WebViewReplace {
                 throw new WebViewReplaceException(apkPath + " is not apk");
             }
 
-            int sdkVersion = Build.VERSION.SDK_INT;
-            ApplicationInfo applicationInfo = packageInfo.applicationInfo;
-
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                int sdkVersion = Build.VERSION.SDK_INT;
+                ApplicationInfo applicationInfo = packageInfo.applicationInfo;
                 if (sdkVersion < applicationInfo.minSdkVersion) {
                     throw new WebViewReplaceException("current system version " + sdkVersion + " is smaller than the minimum version " + applicationInfo.minSdkVersion + " required by the apk  " + apkPath);
                 }
@@ -61,15 +60,7 @@ public class WebViewReplace {
             
             replaceInternal(context, packageInfo, apkPath, libsPath);
         } catch (Throwable throwable) {
-            if (throwable instanceof WebViewReplaceException) {
-                throw throwable;
-            } else {
-                String message = throwable.getMessage();
-                if (TextUtils.isEmpty(message)) {
-                    message = "";
-                }
-                throw new WebViewReplaceException(message, throwable);
-            }
+            throwAsWebViewReplaceException(throwable);
         }
     }
 
@@ -85,32 +76,27 @@ public class WebViewReplace {
                     ? packageInfo.applicationInfo.sourceDir : null;
             replaceInternal(context, packageInfo, sourceDir, null);
         } catch (Throwable throwable) {
-            if (throwable instanceof WebViewReplaceException) {
-                throw throwable;
-            } else {
-                String message = throwable.getMessage();
-                if (TextUtils.isEmpty(message)) {
-                    message = "";
-                }
-                throw new WebViewReplaceException(message, throwable);
-            }
+            throwAsWebViewReplaceException(throwable);
         }
     }
 
-    private synchronized static void replaceInternal(Context context, PackageInfo packageInfo, String apkPath, String libsPath) throws WebViewReplaceException {
-        IWebViewFactory webViewFactory = RuntimeAccess.staticAccess(IWebViewFactory.class);
-        Object providerInstance = webViewFactory.getProviderInstance();
-        if (providerInstance != null) {
-            throw new WebViewReplaceException("WebView can only be replaced before System WebView init");
+    private static void throwAsWebViewReplaceException(Throwable throwable) throws WebViewReplaceException {
+        if (throwable instanceof WebViewReplaceException) {
+            throw (WebViewReplaceException) throwable;
         }
+        String message = throwable.getMessage();
+        if (TextUtils.isEmpty(message)) {
+            message = "";
+        }
+        throw new WebViewReplaceException(message, throwable);
+    }
+
+    private synchronized static void replaceInternal(Context context, PackageInfo packageInfo, String apkPath, String libsPath) throws WebViewReplaceException {
+        checkPreconditions();
 
         WebViewUpdateServiceHook updateServiceHook = null;
         boolean replaceSuccess = false;
         try {
-            if (Looper.myLooper() != Looper.getMainLooper()) {
-                throw new WebViewReplaceException("replace webView only in main thread");
-            }
-
             if (apkPath != null && libsPath != null) {
                 if (sManagerHook == null) {
                     sManagerHook = new PackageManagerServiceHook(context, packageInfo.packageName, apkPath, libsPath);
@@ -131,9 +117,7 @@ public class WebViewReplace {
             updateServiceHook.hook();
             sActivityManagerHook.hook();
 
-            if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
-                SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
-            }
+            getSystemWebViewPackageInfo();
             
             checkWebView(context);
             REPLACE_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
@@ -155,27 +139,38 @@ public class WebViewReplace {
                     }
                 }
             } catch (Throwable throwable) {
-                String message = throwable.getMessage();
-                if (TextUtils.isEmpty(message)) {
-                    message = "";
-                }
-                throw new WebViewReplaceException(message, throwable);
+                throwAsWebViewReplaceException(throwable);
             }
         }
     }
 
-    public synchronized static String getSystemWebViewPackageName() {
-        if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
-            SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
+    private static void checkPreconditions() throws WebViewReplaceException {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            throw new WebViewReplaceException("replace webView only in main thread");
         }
-        return SYSTEM_WEB_VIEW_PACKAGE_INFO != null ? SYSTEM_WEB_VIEW_PACKAGE_INFO.packageName : null;
+
+        IWebViewFactory webViewFactory = RuntimeAccess.staticAccess(IWebViewFactory.class);
+        Object providerInstance = webViewFactory.getProviderInstance();
+        if (providerInstance != null) {
+            throw new WebViewReplaceException("WebView can only be replaced before System WebView init");
+        }
+    }
+
+    public synchronized static String getSystemWebViewPackageName() {
+        PackageInfo packageInfo = getSystemWebViewPackageInfo();
+        return packageInfo != null ? packageInfo.packageName : null;
     }
 
     public synchronized static String getSystemWebViewPackageVersion() {
+        PackageInfo packageInfo = getSystemWebViewPackageInfo();
+        return packageInfo != null ? packageInfo.versionName : null;
+    }
+
+    private synchronized static PackageInfo getSystemWebViewPackageInfo() {
         if (SYSTEM_WEB_VIEW_PACKAGE_INFO == null) {
             SYSTEM_WEB_VIEW_PACKAGE_INFO = loadCurrentWebViewPackageInfo();
         }
-        return SYSTEM_WEB_VIEW_PACKAGE_INFO != null ? SYSTEM_WEB_VIEW_PACKAGE_INFO.versionName : null;
+        return SYSTEM_WEB_VIEW_PACKAGE_INFO;
     }
 
     public synchronized static String getReplaceWebViewPackageName() {
