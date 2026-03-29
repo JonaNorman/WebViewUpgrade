@@ -5,9 +5,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.norman.webviewup.demo.R;
-import com.norman.webviewup.lib.source.UpgradeAssetSource;
-import com.norman.webviewup.lib.source.UpgradeDownloadSource;
-import com.norman.webviewup.lib.source.UpgradePackageSource;
 import com.norman.webviewup.lib.source.UpgradeSource;
 
 import android.content.Context;
@@ -100,26 +97,17 @@ public final class DemoUpgradeChoice {
         return lineVendorArch + '\u0001' + lineVersion;
     }
 
+    @NonNull
+    public UpgradeSourceParams toUpgradeSourceParams() {
+        return new UpgradeSourceParams(
+                UpgradeSourceKind.valueOf(sourceKind.name()),
+                downloadUrl,
+                assetName,
+                installedPackageName);
+    }
+
     @Nullable
     public UpgradeSource toUpgradeSource(@NonNull Context context) {
-        switch (sourceKind) {
-            case ASSET:
-                if (assetName == null || assetName.isEmpty()) {
-                    return null;
-                }
-                return new UpgradeAssetSource(context.getApplicationContext(), assetName);
-            case NETWORK:
-                if (downloadUrl == null || downloadUrl.isEmpty()) {
-                    return null;
-                }
-                return new UpgradeDownloadSource(context.getApplicationContext(), downloadUrl);
-            case INSTALLED_PACKAGE:
-                if (installedPackageName == null || installedPackageName.isEmpty()) {
-                    return null;
-                }
-                return new UpgradePackageSource(context.getApplicationContext(), installedPackageName);
-            default:
-                return null;
-        }
+        return toUpgradeSourceParams().toUpgradeSource(context);
     }
 }

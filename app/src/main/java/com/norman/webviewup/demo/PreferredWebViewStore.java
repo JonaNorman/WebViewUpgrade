@@ -7,6 +7,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.norman.webviewup.demo.catalog.DemoUpgradeChoice;
+import com.norman.webviewup.demo.catalog.UpgradeSourceKind;
+import com.norman.webviewup.demo.catalog.UpgradeSourceParams;
 import com.norman.webviewup.lib.source.UpgradeSource;
 
 /**
@@ -36,11 +38,13 @@ public final class PreferredWebViewStore {
     }
 
     public static void save(@NonNull Context ctx, @NonNull DemoUpgradeChoice choice) {
+        UpgradeSourceParams p = choice.toUpgradeSourceParams();
         SharedPreferences.Editor e = prefs(ctx).edit();
-        e.putString(KEY_SOURCE_KIND, choice.sourceKind.name());
-        e.putString(KEY_DOWNLOAD_URL, choice.downloadUrl != null ? choice.downloadUrl : "");
-        e.putString(KEY_ASSET_NAME, choice.assetName != null ? choice.assetName : "");
-        e.putString(KEY_INSTALLED_PACKAGE, choice.installedPackageName != null ? choice.installedPackageName : "");
+        e.putString(KEY_SOURCE_KIND, p.getKind().name());
+        e.putString(KEY_DOWNLOAD_URL, p.getDownloadUrl());
+        e.putString(KEY_ASSET_NAME, p.getAssetName() != null ? p.getAssetName() : "");
+        e.putString(KEY_INSTALLED_PACKAGE,
+                p.getInstalledPackageName() != null ? p.getInstalledPackageName() : "");
         e.putString(KEY_DISPLAY_PACKAGE, choice.packageName);
         e.putString(KEY_DISPLAY_VERSION, choice.versionLabel);
         e.apply();
@@ -67,29 +71,22 @@ public final class PreferredWebViewStore {
         if (kindStr == null) {
             return null;
         }
-        DemoUpgradeChoice.SourceKind kind;
+        UpgradeSourceKind kind;
         try {
-            kind = DemoUpgradeChoice.SourceKind.valueOf(kindStr);
+            kind = UpgradeSourceKind.valueOf(kindStr);
         } catch (IllegalArgumentException e) {
             return null;
         }
         String downloadUrl = p.getString(KEY_DOWNLOAD_URL, "");
         String assetName = p.getString(KEY_ASSET_NAME, "");
         String installed = p.getString(KEY_INSTALLED_PACKAGE, "");
-        String displayPkg = p.getString(KEY_DISPLAY_PACKAGE, "");
-        String displayVer = p.getString(KEY_DISPLAY_VERSION, "");
-        DemoUpgradeChoice stub = new DemoUpgradeChoice(
-                displayPkg,
-                displayVer,
-                "",
-                DemoUpgradeChoice.StatusTone.NETWORK,
-                0,
-                displayPkg,
-                displayVer,
+        String assetOrNull = (assetName != null && !assetName.isEmpty()) ? assetName : null;
+        String installedOrNull = (installed != null && !installed.isEmpty()) ? installed : null;
+        UpgradeSourceParams params = new UpgradeSourceParams(
                 kind,
                 downloadUrl != null ? downloadUrl : "",
-                assetName != null && !assetName.isEmpty() ? assetName : null,
-                installed != null && !installed.isEmpty() ? installed : null);
-        return stub.toUpgradeSource(ctx);
+                assetOrNull,
+                installedOrNull);
+        return params.toUpgradeSource(ctx);
     }
 }

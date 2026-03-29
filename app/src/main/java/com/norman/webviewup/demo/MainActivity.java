@@ -34,6 +34,7 @@ import com.norman.webviewup.demo.catalog.WebViewPackageCatalog;
 import com.norman.webviewup.lib.UpgradeCallback;
 import com.norman.webviewup.lib.WebViewUpgrade;
 import com.norman.webviewup.lib.source.UpgradeSource;
+import com.norman.webviewup.lib.util.RestartUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,7 +151,13 @@ public class MainActivity extends Activity implements UpgradeCallback {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         PreferredWebViewStore.clear(MainActivity.this);
-                        DemoAppRestarter.restart(getApplication());
+                        RestartUtil.restart(getApplication(),
+                                new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        DemoWebViewHolder.destroyHeldWebView();
+                                    }
+                                });
                     }
                 })
                 .setNegativeButton(android.R.string.cancel, null)
@@ -218,7 +225,13 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 if (restartAfterSelection) {
                     selectUpgradeChoice = choice;
                     PreferredWebViewStore.save(MainActivity.this, choice);
-                    DemoAppRestarter.restart(getApplication());
+                    RestartUtil.restart(getApplication(),
+                            new Runnable() {
+                                @Override
+                                public void run() {
+                                    DemoWebViewHolder.destroyHeldWebView();
+                                }
+                            });
                     return;
                 }
                 if (WebViewUpgrade.isCompleted()) {
