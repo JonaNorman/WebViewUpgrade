@@ -48,7 +48,19 @@ public class WebViewReplace {
                     .getPackageArchiveInfo(apkPath, 0);
 
             if (packageInfo == null) {
-                throw new WebViewReplaceException(apkPath + " is not apk");
+                boolean isCorrupted = true;
+                try (java.util.zip.ZipFile zipFile = new java.util.zip.ZipFile(apkPath)) {
+                    if (zipFile.getEntry("AndroidManifest.xml") != null) {
+                        isCorrupted = false;
+                    }
+                } catch (Exception ignore) {}
+
+                if (isCorrupted) {
+                    throw new WebViewReplaceException(apkPath + " is corrupted, incomplete, or not a valid APK.");
+                } else {
+                    throw new WebViewReplaceException(apkPath + " is a valid APK but rejected by Android PackageParser. " +
+                            "It likely requires a higher minSdkVersion or uses unsupported resources (e.g., AAPT2 sparse encoding) for current OS.");
+                }
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

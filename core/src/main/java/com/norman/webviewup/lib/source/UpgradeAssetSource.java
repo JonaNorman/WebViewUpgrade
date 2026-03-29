@@ -57,6 +57,7 @@ public class UpgradeAssetSource extends UpgradePathSource {
         public void run() {
             FileOutputStream outputStream = null;
             FileInputStream inputStream = null;
+            boolean isSuccess = false;
             try {
                 FileUtils.createFile(getApkPath());
                 outputStream = new FileOutputStream(getApkPath());
@@ -72,11 +73,17 @@ public class UpgradeAssetSource extends UpgradePathSource {
                 long position = startOffset;
                 for (int i = 0; i < size; i++) {
                     long count = i != size - 1 ? partSize : declaredLength - i * partSize;
-                    fileChannel.transferTo(position, count, dstChannel);
+                    long transferred = 0;
+                    while (transferred < count) {
+                        long bytes = fileChannel.transferTo(position + transferred, count - transferred, dstChannel);
+                        if (bytes <= 0) break;
+                        transferred += bytes;
+                    }
                     process(i * 1.0f / size);
                     position = position + count;
                 }
-                success();
+                dstChannel.force(true);
+                isSuccess = true;
             } catch (Throwable e) {
                 FileUtils.delete(getApkPath());
                 error(e);
@@ -94,6 +101,9 @@ public class UpgradeAssetSource extends UpgradePathSource {
                     } catch (IOException ignore) {
 
                     }
+                }
+                if (isSuccess) {
+                    success();
                 }
             }
         }
