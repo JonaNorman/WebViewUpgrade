@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="wv_choice_status_version_sep" translatable="false">·</string>
+
+    <string name="wv_dialog_title">选择 WebView 包</string>
+    <string name="wv_catalog_load_failed">无法加载目录：%1$s</string>
+    <string name="wv_no_matching_packages">没有匹配本机的包（API / ABI）。</string>
+    <string name="wv_upgrade_in_progress">WebView 正在升级，请稍候。</string>
+    <string name="wv_upgrade_already_done">WebView 已升级完成，不支持动态切换。</string>
+    <string name="wv_invalid_upgrade_source">无效的升级来源。</string>
+    <string name="wv_upgrade_success">WebView 升级成功。</string>
+    <string name="wv_upgrade_fail">WebView 升级失败。</string>
+
+    <string name="wv_status_bundled">内置</string>
+    <string name="wv_status_online">在线</string>
+    <string name="wv_status_downloaded">已下载</string>
+    <string name="wv_status_prefetch">需 prefetch</string>
+    <string name="wv_status_installed">已安装</string>
+
+    <string name="wv_vendor_unknown">未知</string>
+    <string name="wv_vendor_android">Android</string>
+    <string name="wv_vendor_google">Google</string>
+    <string name="wv_vendor_chrome">Chrome</string>
+    <string name="wv_vendor_huawei">华为</string>
+    <string name="wv_vendor_amazon">Amazon</string>
+
+    <string name="wv_label_unknown">未知</string>
+    <string name="wv_chrome_not_installed">未安装</string>
+    <string name="wv_status_upgrading">升级中…</string>
+    <string name="wv_status_fail">失败</string>
+    <string name="wv_status_complete">已完成</string>
+    <string name="wv_error_message_prefix">错误：</string>
+</resources>

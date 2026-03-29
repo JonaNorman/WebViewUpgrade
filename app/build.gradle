@@ -1,6 +1,15 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
+
 plugins {
     id 'com.android.application'
 }
+
+def generatedWebviewAssetsDir = file("$buildDir/generated/webview-assets")
 
 android {
 
@@ -11,6 +20,7 @@ android {
         targetSdkVersion 35
         versionCode 1
         versionName "1.0"
+        buildConfigField "boolean", "CATALOG_PREFER_GHPROXY", "true"
     }
 
     aaptOptions {
@@ -44,15 +54,373 @@ android {
     sourceSets {
         main {
             jniLibs.srcDirs = ["libs"]
+            assets.srcDirs += generatedWebviewAssetsDir
         }
     }
     namespace 'com.norman.webviewup.demo'
+    buildFeatures {
+        buildConfig true
+    }
 }
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.3.0'
-//    implementation 'io.github.jonanorman.android.webviewup:core:0.1.0'
-//    implementation 'io.github.jonanorman.android.webviewup:download-source:0.1.0'
     implementation project(":core")
+}
 
+static void copyFileReplace(File from, File to) {
+    to.parentFile.mkdirs()
+    java.nio.file.Files.copy(from.toPath(), to.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+}
+
+static void streamToFile(InputStream ins, File dest) throws IOException {
+    dest.parentFile.mkdirs()
+    dest.withOutputStream { os ->
+        byte[] buf = new byte[8192]
+        int n
+        while ((n = ins.read(buf)) != -1) {
+            os.write(buf, 0, n)
+        }
+    }
+}
+
+static Map readJsonMap(File f) {
+    if (!f.exists()) {
+        return [:]
+    }
+    try {
+        Object o = new JsonSlurper().parse(f)
+        return (o instanceof Map) ? (Map) o : [:]
+    } catch (ignored) {
+        return [:]
+    }
+}
+
+static void writeJsonMap(File f, Map map) {
+    f.parentFile.mkdirs()
+    f.text = JsonOutput.toJson(map)
+}
+
+/** Last path segment of URL (e.g. release APK filename); used when webview_local.json omits assetName. */
+static String basenameFromUrl(String urlStr) {
+    if (urlStr == null || !urlStr.trim()) {
+        throw new GradleException("Empty download URL, cannot derive asset file name")
+    }
+    URL u = new URL(urlStr.trim())
+    String path = u.getPath()
+    if (!path || path.isEmpty()) {
+        throw new GradleException("Cannot derive asset name from URL: ${urlStr}")
+    }
+    int slash = path.lastIndexOf((int) '/')
+    String name = slash >= 0 ? path.substring(slash + 1) : path
+    if (!name || name.isEmpty()) {
+        throw new GradleException("Cannot derive asset name from URL: ${urlStr}")
+    }
+    return name
+}
+
+tasks.register("syncWebViewCatalog") {
+    group = "webview"
+    description = "Fetch webview_packages.json with HTTP conditional cache; writes to build/generated/webview-assets"
+    outputs.file(file("${generatedWebviewAssetsDir}/webview_packages.json"))
+    // Always run doLast so conditional GET (304) can run; Gradle would otherwise skip after first success.
+    outputs.upToDateWhen { false }
+    doLast {
+        File cacheDir = file("${buildDir}/webview-catalog-cache")
+        cacheDir.mkdirs()
+        File cachedCatalog = file("${cacheDir}/webview_packages.json")
+        File metaFile = file("${cacheDir}/catalog.meta.json")
+
+        String urlStr = (project.findProperty("webviewCatalogUrl")
+                ?: "https://raw.githubusercontent.com/JonaNorman/WebViewPackage/main/webview_packages.json").toString()
+        boolean offlineFail = (project.findProperty("webviewCatalogOfflineFail") ?: "false").toString().toBoolean()
+        Integer maxAgeHours = null
+        def maxAgeProp = project.findProperty("webviewCatalogMaxAgeHours")
+        if (maxAgeProp != null && maxAgeProp.toString().trim()) {
+            maxAgeHours = maxAgeProp.toString().toInteger()
+        }
+
+        Map meta = readJsonMap(metaFile)
+        boolean forceFullFetch = false
+        if (meta.url && meta.url != urlStr) {
+            forceFullFetch = true
+        }
+        if (maxAgeHours != null && meta.lastFetchedMillis != null) {
+            long ageMs = System.currentTimeMillis() - ((Number) meta.lastFetchedMillis).longValue()
+            if (ageMs > maxAgeHours * 3600000L) {
+                forceFullFetch = true
+            }
+        }
+
+        generatedWebviewAssetsDir.mkdirs()
+        File outCatalog = file("${generatedWebviewAssetsDir}/webview_packages.json")
+
+        try {
+            HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection()
+            conn.setRequestMethod("GET")
+            conn.setConnectTimeout(30_000)
+            conn.setReadTimeout(120_000)
+            conn.setInstanceFollowRedirects(true)
+            conn.setRequestProperty("Accept", "application/json")
+            if (!forceFullFetch && meta.etag) {
+                conn.setRequestProperty("If-None-Match", meta.etag.toString())
+            }
+            if (!forceFullFetch && meta.lastModified) {
+                conn.setRequestProperty("If-Modified-Since", meta.lastModified.toString())
+            }
+
+            int code = conn.responseCode
+            if (code == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                if (!cachedCatalog.exists()) {
+                    conn.disconnect()
+                    throw new GradleException("HTTP 304 but missing ${cachedCatalog}")
+                }
+                copyFileReplace(cachedCatalog, outCatalog)
+                println "syncWebViewCatalog: 304 Not Modified, reused cache."
+            } else if (code == HttpURLConnection.HTTP_OK) {
+                InputStream ins = conn.getInputStream()
+                try {
+                    streamToFile(ins, cachedCatalog)
+                } finally {
+                    ins.close()
+                }
+                String etag = conn.getHeaderField("ETag")
+                String lm = conn.getHeaderField("Last-Modified")
+                Map newMeta = [
+                        etag               : etag,
+                        lastModified       : lm,
+                        lastFetchedMillis  : System.currentTimeMillis(),
+                        url                : urlStr
+                ]
+                writeJsonMap(metaFile, newMeta)
+                copyFileReplace(cachedCatalog, outCatalog)
+                println "syncWebViewCatalog: downloaded catalog (${cachedCatalog.length()} bytes)."
+            } else {
+                String err = conn.errorStream?.text
+                conn.disconnect()
+                throw new IOException("HTTP ${code} ${err ?: ""}")
+            }
+            conn.disconnect()
+        } catch (Exception e) {
+            if (cachedCatalog.exists()) {
+                println "WARNING: syncWebViewCatalog failed (${e.message}), using file cache."
+                if (offlineFail) {
+                    throw new GradleException("syncWebViewCatalog failed and webviewCatalogOfflineFail=true", e)
+                }
+                copyFileReplace(cachedCatalog, outCatalog)
+            } else {
+                throw new GradleException("syncWebViewCatalog failed and no cache: ${e.message}", e)
+            }
+        }
+
+        // Minimal JSON sanity check
+        Object root = new JsonSlurper().parse(outCatalog)
+        if (!(root instanceof Map) || !((Map) root).containsKey("vendors")) {
+            throw new GradleException("Invalid webview_packages.json (missing vendors)")
+        }
+
+        // Local copy under app/ (gitignored) for writing webview_local.json next to catalog
+        File appCatalogCopy = file("${projectDir}/webview_packages.json")
+        copyFileReplace(outCatalog, appCatalogCopy)
+
+        // Default empty manifest in generated assets only if missing (do not overwrite prefetch output)
+        File genManifest = file("${generatedWebviewAssetsDir}/webview_asset_manifest.json")
+        if (!genManifest.exists()) {
+            genManifest.text = JsonOutput.prettyPrint(JsonOutput.toJson([]))
+        }
+    }
+}
+
+tasks.register("prefetchWebViewApks") {
+    group = "webview"
+    description = "Reads webview_local.json (if present), downloads APKs into src/main/assets, writes webview_asset_manifest.json to generated assets. Runs before every preBuild."
+    doLast {
+        generatedWebviewAssetsDir.mkdirs()
+        File genManifestOut = file("${generatedWebviewAssetsDir}/webview_asset_manifest.json")
+
+        File catalogFile = file("${generatedWebviewAssetsDir}/webview_packages.json")
+        if (!catalogFile.exists()) {
+            throw new GradleException("Missing catalog after sync: ${catalogFile}")
+        }
+        File localFile = file("${projectDir}/webview_local.json")
+        if (!localFile.exists()) {
+            println "webview_local.json not found. Copy webview_local.json.example to webview_local.json and edit. Nothing downloaded."
+            genManifestOut.text = JsonOutput.prettyPrint(JsonOutput.toJson([]))
+            return
+        }
+        JsonSlurper slurper = new JsonSlurper()
+        Object catalogRoot = slurper.parse(catalogFile)
+        Object localRoot = slurper.parse(localFile)
+        if (!(localRoot instanceof List) || localRoot.isEmpty()) {
+            println "webview_local.json is empty — no APKs to prefetch."
+            genManifestOut.text = JsonOutput.prettyPrint(JsonOutput.toJson([]))
+            return
+        }
+        boolean preferGh = true
+        if (project.hasProperty("webviewPrefetchPreferGhProxy")) {
+            preferGh = project.property("webviewPrefetchPreferGhProxy").toString().toBoolean()
+        }
+        boolean apkOfflineFail = (project.findProperty("webviewApkOfflineFail") ?: "false").toString().toBoolean()
+
+        List vendors = catalogRoot.vendors as List
+        File apkCacheDir = file("${buildDir}/webview-apk-cache")
+        apkCacheDir.mkdirs()
+        File assetsOut = file("${projectDir}/src/main/assets")
+        assetsOut.mkdirs()
+        List manifest = []
+
+        localRoot.each { Map item ->
+            String vendor = item.vendor as String
+            String version = item.version as String
+            String arch = item.arch as String
+            String urlOverride = (item.url ?: "") as String
+            String pkgOverride = (item.packageName ?: "") as String
+            if (!vendor || !version || !arch) {
+                throw new GradleException("webview_local.json entry missing vendor/version/arch: ${item}")
+            }
+            String primaryPackage = pkgOverride
+            String downloadUrl = urlOverride
+            if (downloadUrl) {
+                if (!primaryPackage) {
+                    primaryPackage = ""
+                }
+            } else {
+                Map foundPkg = null
+                Map foundEntry = null
+                for (Object vo : vendors) {
+                    Map v = vo as Map
+                    if (v.vendor as String != vendor) {
+                        continue
+                    }
+                    List pns = v.package_names as List
+                    if (pns != null && !pns.isEmpty() && !primaryPackage) {
+                        primaryPackage = pns[0] as String
+                    }
+                    List pkgs = v.packages as List
+                    if (pkgs == null) {
+                        continue
+                    }
+                    for (Object po : pkgs) {
+                        Map p = po as Map
+                        if ((p.version as String) == version && (p.arch as String) == arch) {
+                            foundEntry = p
+                            foundPkg = v
+                            break
+                        }
+                    }
+                    if (foundEntry != null) {
+                        break
+                    }
+                }
+                if (foundEntry == null) {
+                    throw new GradleException("No catalog match for vendor=${vendor} version=${version} arch=${arch}")
+                }
+                if (!primaryPackage) {
+                    List pns2 = foundPkg.package_names as List
+                    if (pns2 != null && !pns2.isEmpty()) {
+                        primaryPackage = pns2[0] as String
+                    }
+                }
+                downloadUrl = preferGh && foundEntry.ghproxy_url ?
+                        (foundEntry.ghproxy_url as String) : (foundEntry.url as String)
+            }
+            if (!primaryPackage) {
+                primaryPackage = ""
+            }
+
+            String explicitAsset = item.assetName != null ? item.assetName.toString().trim() : ""
+            String assetName = explicitAsset ? explicitAsset : basenameFromUrl(downloadUrl)
+
+            File cachedApk = file("${apkCacheDir}/${assetName}")
+            File apkMetaFile = file("${apkCacheDir}/${assetName}.meta.json")
+            Map apkMeta = readJsonMap(apkMetaFile)
+            boolean urlChanged = apkMeta.url && apkMeta.url != downloadUrl
+            if (urlChanged) {
+                cachedApk.delete()
+                apkMeta = [:]
+            }
+
+            boolean downloaded = false
+            try {
+                HttpURLConnection conn = (HttpURLConnection) new URL(downloadUrl).openConnection()
+                conn.setRequestMethod("GET")
+                conn.setConnectTimeout(60_000)
+                conn.setReadTimeout(600_000)
+                conn.setInstanceFollowRedirects(true)
+                if (apkMeta.etag) {
+                    conn.setRequestProperty("If-None-Match", apkMeta.etag.toString())
+                }
+                if (apkMeta.lastModified) {
+                    conn.setRequestProperty("If-Modified-Since", apkMeta.lastModified.toString())
+                }
+
+                int code = conn.responseCode
+                if (code == HttpURLConnection.HTTP_NOT_MODIFIED) {
+                    if (!cachedApk.exists()) {
+                        conn.disconnect()
+                        throw new GradleException("HTTP 304 for ${assetName} but cache missing")
+                    }
+                    println "prefetchWebViewApks: 304 ${assetName} (reused build cache)."
+                    downloaded = true
+                } else if (code == HttpURLConnection.HTTP_OK) {
+                    File tmp = file("${apkCacheDir}/${assetName}.tmp")
+                    InputStream is = conn.getInputStream()
+                    try {
+                        streamToFile(is, tmp)
+                    } finally {
+                        is.close()
+                    }
+                    java.nio.file.Files.move(tmp.toPath(), cachedApk.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                    Map newApkMeta = [
+                            etag             : conn.getHeaderField("ETag"),
+                            lastModified     : conn.getHeaderField("Last-Modified"),
+                            lastFetchedMillis: System.currentTimeMillis(),
+                            url              : downloadUrl
+                    ]
+                    writeJsonMap(apkMetaFile, newApkMeta)
+                    println "prefetchWebViewApks: downloaded ${assetName} (${cachedApk.length()} bytes)."
+                    downloaded = true
+                } else {
+                    String err = conn.errorStream?.text
+                    conn.disconnect()
+                    throw new IOException("HTTP ${code} ${err ?: ""}")
+                }
+                conn.disconnect()
+            } catch (Exception e) {
+                if (cachedApk.exists()) {
+                    println "WARNING: APK fetch failed for ${assetName} (${e.message}), using build cache."
+                    if (apkOfflineFail) {
+                        throw new GradleException("prefetchWebViewApks failed and webviewApkOfflineFail=true", e)
+                    }
+                    downloaded = true
+                } else {
+                    throw new GradleException("prefetchWebViewApks failed for ${assetName} and no cache: ${e.message}", e)
+                }
+            }
+
+            if (downloaded && cachedApk.exists()) {
+                File finalApk = file("${assetsOut}/${assetName}")
+                copyFileReplace(cachedApk, finalApk)
+                manifest.add([
+                        vendor     : vendor,
+                        version    : version,
+                        arch       : arch,
+                        assetName  : assetName,
+                        packageName: primaryPackage
+                ])
+            }
+        }
+        genManifestOut.text = JsonOutput.prettyPrint(JsonOutput.toJson(manifest))
+        println "Wrote ${genManifestOut} with ${manifest.size()} entries."
+    }
+}
+
+tasks.named("preBuild").configure {
+    // sync catalog + apply webview_local.json (APKs + generated manifest) on every compile
+    dependsOn("syncWebViewCatalog")
+    dependsOn("prefetchWebViewApks")
+}
+
+tasks.named("prefetchWebViewApks").configure {
+    dependsOn("syncWebViewCatalog")
 }

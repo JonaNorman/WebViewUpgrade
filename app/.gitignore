@@ -78,6 +78,15 @@ fastlane/readme.md
 # Version control
 vcs.xml
 
+# Prefetched WebView APKs (use ./gradlew :app:prefetchWebViewApks locally)
+src/main/assets/*.apk
+
+# Optional: local Gradle-only prefetch config (copy from webview_local.json.example)
+webview_local.json
+
+# Synced catalog copy for local reference (also in build/generated/webview-assets for packaging)
+webview_packages.json
+
 # lint
 lint/intermediates/
 lint/generated/
