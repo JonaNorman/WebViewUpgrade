@@ -17,6 +17,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -45,11 +46,15 @@ public class MainActivity extends Activity implements UpgradeCallback {
     TextView systemWebViewPackageTextView;
     TextView chromePackageTextView;
     TextView upgradeWebViewPackageTextView;
+    TextView kernelPendingTextView;
 
     TextView upgradeStatusTextView;
     TextView upgradeErrorTextView;
 
     TextView upgradeProgressTextView;
+
+    Button upgradeButton;
+    Button restoreButton;
 
     @Nullable
     DemoUpgradeChoice selectUpgradeChoice;
@@ -63,17 +68,17 @@ public class MainActivity extends Activity implements UpgradeCallback {
         systemWebViewPackageTextView = findViewById(R.id.systemWebViewPackageTextView);
         chromePackageTextView = findViewById(R.id.chromePackageTextView);
         upgradeWebViewPackageTextView = findViewById(R.id.upgradeWebViewPackageTextView);
+        kernelPendingTextView = findViewById(R.id.kernelPendingTextView);
         upgradeStatusTextView = findViewById(R.id.upgradeStatusTextView);
         upgradeErrorTextView = findViewById(R.id.upgradeErrorTextView);
         upgradeProgressTextView = findViewById(R.id.upgradeProgressTextView);
-        updateSystemWebViewPackageInfo();
-        updateChromePackageInfo();
-        updateUpgradeWebViewStatus();
+        upgradeButton = findViewById(R.id.upgradeButton);
+        restoreButton = findViewById(R.id.restoreButton);
 
-        findViewById(R.id.upgradeButton).setOnClickListener(new View.OnClickListener() {
+        upgradeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                showChooseWebViewDialog();
+                onChooseKernelClicked();
             }
         });
 
@@ -83,6 +88,21 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 startActivity(new Intent(MainActivity.this, WebViewActivity.class));
             }
         });
+
+        restoreButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showRestoreConfirmDialog();
+            }
+        });
+
+        refreshAllUi();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        refreshAllUi();
     }
 
     @Override
@@ -91,25 +111,56 @@ public class MainActivity extends Activity implements UpgradeCallback {
         WebViewUpgrade.removeUpgradeCallback(this);
     }
 
-    @Override
-    public void onUpgradeProcess(float percent) {
+    private void refreshAllUi() {
+        updateSystemWebViewPackageInfo();
+        updateChromePackageInfo();
+        updateUpgradeWebViewPackageInfo();
+        updateKernelPendingLine();
         updateUpgradeWebViewStatus();
+        updateActionButtons();
     }
 
-    @Override
-    public void onUpgradeComplete() {
-        updateUpgradeWebViewStatus();
-        Toast.makeText(getApplicationContext(), R.string.wv_upgrade_success, Toast.LENGTH_SHORT).show();
+    private void onChooseKernelClicked() {
+        if (WebViewUpgrade.isProcessing()) {
+            Toast.makeText(getApplicationContext(), R.string.wv_upgrade_in_progress, Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (WebViewUpgrade.isCompleted()) {
+            new AlertDialog.Builder(this)
+                    .setTitle(R.string.wv_change_requires_restart_title)
+                    .setMessage(R.string.wv_change_requires_restart_message)
+                    .setPositiveButton(R.string.wv_action_continue, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            openKernelPicker(true);
+                        }
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            return;
+        }
+        openKernelPicker(false);
     }
 
-    @Override
-    public void onUpgradeError(Throwable throwable) {
-        Toast.makeText(getApplicationContext(), R.string.wv_upgrade_fail, Toast.LENGTH_SHORT).show();
-        Log.e(TAG, "message:" + throwable.getMessage() + "\nstackTrace:" + Log.getStackTraceString(throwable));
-        updateUpgradeWebViewStatus();
+    private void showRestoreConfirmDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.wv_restore_confirm_title)
+                .setMessage(R.string.wv_restore_confirm_message)
+                .setPositiveButton(R.string.wv_action_continue, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        PreferredWebViewStore.clear(MainActivity.this);
+                        DemoAppRestarter.restart(getApplication());
+                    }
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
-    private void showChooseWebViewDialog() {
+    /**
+     * @param restartAfterSelection if true, persist choice and hard-restart (used when upgrade already completed this process).
+     */
+    private void openKernelPicker(final boolean restartAfterSelection) {
         List<DemoUpgradeChoice> choices;
         try {
             choices = WebViewPackageCatalog.buildCatalogChoices(
@@ -156,20 +207,30 @@ public class MainActivity extends Activity implements UpgradeCallback {
                 dialog.dismiss();
                 if (WebViewUpgrade.isProcessing()) {
                     Toast.makeText(getApplicationContext(), R.string.wv_upgrade_in_progress, Toast.LENGTH_LONG).show();
-                } else if (WebViewUpgrade.isCompleted()) {
-                    Toast.makeText(getApplicationContext(), R.string.wv_upgrade_already_done, Toast.LENGTH_LONG).show();
-                } else {
-                    DemoUpgradeChoice choice = list.get(which);
-                    selectUpgradeChoice = choice;
-                    UpgradeSource upgradeSource = choice.toUpgradeSource(MainActivity.this);
-                    if (upgradeSource == null) {
-                        Toast.makeText(getApplicationContext(), R.string.wv_invalid_upgrade_source, Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    WebViewUpgrade.upgrade(upgradeSource);
-                    updateUpgradeWebViewPackageInfo();
-                    updateUpgradeWebViewStatus();
+                    return;
                 }
+                DemoUpgradeChoice choice = list.get(which);
+                UpgradeSource upgradeSource = choice.toUpgradeSource(MainActivity.this);
+                if (upgradeSource == null) {
+                    Toast.makeText(getApplicationContext(), R.string.wv_invalid_upgrade_source, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if (restartAfterSelection) {
+                    selectUpgradeChoice = choice;
+                    PreferredWebViewStore.save(MainActivity.this, choice);
+                    DemoAppRestarter.restart(getApplication());
+                    return;
+                }
+                if (WebViewUpgrade.isCompleted()) {
+                    Toast.makeText(getApplicationContext(), R.string.wv_upgrade_already_done, Toast.LENGTH_LONG).show();
+                    return;
+                }
+                selectUpgradeChoice = choice;
+                WebViewUpgrade.upgrade(upgradeSource);
+                updateUpgradeWebViewPackageInfo();
+                updateKernelPendingLine();
+                updateUpgradeWebViewStatus();
+                updateActionButtons();
             }
         });
         AlertDialog dialog = builder.create();
@@ -179,6 +240,49 @@ public class MainActivity extends Activity implements UpgradeCallback {
             lv.setDivider(new ColorDrawable(0x00000000));
             lv.setDividerHeight(0);
         }
+    }
+
+    @Override
+    public void onUpgradeProcess(float percent) {
+        updateUpgradeWebViewStatus();
+        updateKernelPendingLine();
+        updateActionButtons();
+    }
+
+    @Override
+    public void onUpgradeComplete() {
+        if (selectUpgradeChoice != null) {
+            PreferredWebViewStore.save(this, selectUpgradeChoice);
+        }
+        updateUpgradeWebViewStatus();
+        updateUpgradeWebViewPackageInfo();
+        updateKernelPendingLine();
+        updateActionButtons();
+        Toast.makeText(getApplicationContext(), R.string.wv_upgrade_success, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onUpgradeError(Throwable throwable) {
+        Toast.makeText(getApplicationContext(), R.string.wv_upgrade_fail, Toast.LENGTH_SHORT).show();
+        Log.e(TAG, "message:" + throwable.getMessage() + "\nstackTrace:" + Log.getStackTraceString(throwable));
+        updateUpgradeWebViewStatus();
+        updateKernelPendingLine();
+        updateActionButtons();
+    }
+
+    private void updateKernelPendingLine() {
+        boolean show = PreferredWebViewStore.hasChoice(this)
+                && !WebViewUpgrade.isCompleted()
+                && !WebViewUpgrade.isFailed();
+        kernelPendingTextView.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private void updateActionButtons() {
+        boolean processing = WebViewUpgrade.isProcessing();
+        upgradeButton.setEnabled(!processing);
+        boolean canRestore = PreferredWebViewStore.hasChoice(this) || WebViewUpgrade.isCompleted();
+        restoreButton.setEnabled(canRestore);
+        restoreButton.setAlpha(canRestore ? 1f : 0.45f);
     }
 
     /**
@@ -237,17 +341,36 @@ public class MainActivity extends Activity implements UpgradeCallback {
     }
 
     private void updateUpgradeWebViewPackageInfo() {
-        String upgradeWebViewPackageName = selectUpgradeChoice != null ? selectUpgradeChoice.packageName : null;
-        String upgradeWebViewPackageVersion = selectUpgradeChoice != null ? selectUpgradeChoice.versionLabel : null;
-
+        String runtimeName = WebViewUpgrade.getUpgradeWebViewPackageName();
+        String runtimeVer = WebViewUpgrade.getUpgradeWebViewVersion();
         String unknown = getString(R.string.wv_label_unknown);
-        String upgradeWebViewPackageInfo = "";
-        if (!TextUtils.isEmpty(upgradeWebViewPackageName)
-                || !TextUtils.isEmpty(upgradeWebViewPackageVersion)) {
-            upgradeWebViewPackageInfo = (!TextUtils.isEmpty(upgradeWebViewPackageName) ? upgradeWebViewPackageName : unknown)
-                    + ":" + (!TextUtils.isEmpty(upgradeWebViewPackageVersion) ? upgradeWebViewPackageVersion : unknown);
+
+        if (!TextUtils.isEmpty(runtimeName) || !TextUtils.isEmpty(runtimeVer)) {
+            String info = (!TextUtils.isEmpty(runtimeName) ? runtimeName : unknown)
+                    + ":" + (!TextUtils.isEmpty(runtimeVer) ? runtimeVer : unknown);
+            upgradeWebViewPackageTextView.setText(info);
+            return;
         }
-        upgradeWebViewPackageTextView.setText(upgradeWebViewPackageInfo);
+
+        String storedPkg = PreferredWebViewStore.getDisplayPackageName(this);
+        String storedVer = PreferredWebViewStore.getDisplayVersion(this);
+        if (!TextUtils.isEmpty(storedPkg) || !TextUtils.isEmpty(storedVer)) {
+            String info = (!TextUtils.isEmpty(storedPkg) ? storedPkg : unknown)
+                    + ":" + (!TextUtils.isEmpty(storedVer) ? storedVer : unknown);
+            upgradeWebViewPackageTextView.setText(info);
+            return;
+        }
+
+        if (selectUpgradeChoice != null) {
+            String pn = selectUpgradeChoice.packageName;
+            String vl = selectUpgradeChoice.versionLabel;
+            String info = (!TextUtils.isEmpty(pn) ? pn : unknown)
+                    + ":" + (!TextUtils.isEmpty(vl) ? vl : unknown);
+            upgradeWebViewPackageTextView.setText(info);
+            return;
+        }
+
+        upgradeWebViewPackageTextView.setText(R.string.wv_no_custom_kernel);
     }
 
     private void updateUpgradeWebViewStatus() {

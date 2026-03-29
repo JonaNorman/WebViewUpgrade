@@ -6,4 +6,5 @@
     <color name="wv_tone_network">#E65100</color>
     <color name="wv_tone_prefetch">#C62828</color>
     <color name="wv_text_secondary">#757575</color>
+    <color name="wv_error_text">#B00020</color>
 </resources>
