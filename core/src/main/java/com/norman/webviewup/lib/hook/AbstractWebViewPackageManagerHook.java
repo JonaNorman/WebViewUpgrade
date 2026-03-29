@@ -13,8 +13,10 @@ import android.os.IInterface;
 import android.os.RemoteException;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import com.norman.webviewup.lib.reflect.RuntimeAccess;
 import com.norman.webviewup.lib.service.binder.BinderHook;
@@ -32,7 +34,6 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -80,35 +81,152 @@ abstract class AbstractWebViewPackageManagerHook extends BinderHook {
         return packageInfo;
     }
 
+    /**
+     * 已安装包常在 {@code lib/arm}、{@code lib/arm64} 下放置 so，与规范名 {@code armeabi-v7a}、{@code arm64-v8a} 不一致。
+     * 与 {@link com.norman.webviewup.lib.util.ProcessUtils#getCurrentInstruction} 中 arm/arm64 语义对齐。
+     */
+    @Nullable
+    private static String shortDirNameForCanonicalAbi(String canonical) {
+        if ("arm64-v8a".equals(canonical)) {
+            return "arm64";
+        }
+        if ("armeabi-v7a".equals(canonical) || "armeabi".equals(canonical)) {
+            return "arm";
+        }
+        return null;
+    }
+
+    @Nullable
+    private static String canonicalAbiFromDiskDirName(String diskName, String[] preferredAbis) {
+        if (TextUtils.isEmpty(diskName)) {
+            return null;
+        }
+        if ("arm64".equals(diskName)) {
+            for (String a : preferredAbis) {
+                if ("arm64-v8a".equals(a)) {
+                    return a;
+                }
+            }
+            for (String a : preferredAbis) {
+                if (a != null && a.startsWith("arm64")) {
+                    return a;
+                }
+            }
+        }
+        if ("arm".equals(diskName)) {
+            for (String a : preferredAbis) {
+                if ("armeabi-v7a".equals(a) || "armeabi".equals(a)) {
+                    return a;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 解析 {@code libsPath} 根目录下的 ABI 子目录：规范名匹配 → 短目录名（arm/arm64）→ 子目录内含 .so。
+     */
+    @Nullable
+    private static Pair<String, String> resolveNativeLibraryDirFromLibsRoot(File libsDir, boolean is64Bit) {
+        String[] preferredAbis =
+                (is64Bit ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS).clone();
+        String[] sortedAbis = preferredAbis.clone();
+        Arrays.sort(sortedAbis);
+
+        String[] list = libsDir.list();
+        if (list == null) {
+            return null;
+        }
+
+        for (String n : list) {
+            if (n != null && n.endsWith(".so")) {
+                String cpuAbi = preferredAbis.length > 0 ? preferredAbis[0] : null;
+                if (cpuAbi == null) {
+                    return null;
+                }
+                Log.w(TAG, "resolveNativeLibraryDirFromLibsRoot: so 在 lib 根目录，cpuAbi=" + cpuAbi);
+                return Pair.create(cpuAbi, libsDir.getAbsolutePath());
+            }
+        }
+
+        for (String name : list) {
+            if (name != null && Arrays.binarySearch(sortedAbis, name) >= 0) {
+                File d = new File(libsDir, name);
+                if (d.isDirectory()) {
+                    return Pair.create(name, d.getAbsolutePath());
+                }
+            }
+        }
+
+        for (String canonical : preferredAbis) {
+            if (canonical == null) {
+                continue;
+            }
+            File d = new File(libsDir, canonical);
+            if (d.isDirectory()) {
+                return Pair.create(canonical, d.getAbsolutePath());
+            }
+            String shortName = shortDirNameForCanonicalAbi(canonical);
+            if (shortName != null) {
+                File d2 = new File(libsDir, shortName);
+                if (d2.isDirectory()) {
+                    return Pair.create(canonical, d2.getAbsolutePath());
+                }
+            }
+        }
+
+        for (String name : list) {
+            if (name == null) {
+                continue;
+            }
+            File sub = new File(libsDir, name);
+            if (!sub.isDirectory()) {
+                continue;
+            }
+            String[] subList = sub.list();
+            if (subList == null) {
+                continue;
+            }
+            for (String f : subList) {
+                if (f != null && f.endsWith(".so")) {
+                    String cpuAbi = canonicalAbiFromDiskDirName(name, preferredAbis);
+                    if (cpuAbi == null && Arrays.binarySearch(sortedAbis, name) >= 0) {
+                        cpuAbi = name;
+                    }
+                    if (cpuAbi == null) {
+                        cpuAbi = preferredAbis.length > 0 ? preferredAbis[0] : name;
+                        Log.w(TAG, "resolveNativeLibraryDirFromLibsRoot: .so 兜底推断 cpuAbi=" + cpuAbi
+                                + " dir=" + name);
+                    }
+                    return Pair.create(cpuAbi, sub.getAbsolutePath());
+                }
+            }
+        }
+
+        return null;
+    }
+
     protected void fillPackageInfo(PackageInfo packageInfo) {
         boolean is64Bit = ProcessUtils.is64Bit();
-        String[] supportBitAbis = is64Bit ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS;
-        Arrays.sort(supportBitAbis, Collections.reverseOrder());
-        String nativeLibraryDir = null;
+        String[] preferredAbis =
+                (is64Bit ? Build.SUPPORTED_64_BIT_ABIS : Build.SUPPORTED_32_BIT_ABIS).clone();
 
         File libsDir = new File(libsPath);
         if (!FileUtils.exist(libsDir)) {
             throw new RuntimeException("libsDir not exist  " + libsPath);
         }
-        String[] list = libsDir.list();
-        if (list == null) {
+        if (libsDir.list() == null) {
             throw new RuntimeException("abi dir  not exist in " + libsPath);
         }
-        Arrays.sort(supportBitAbis);
-        String cpuAbi = null;
-        for (String name : list) {
-            if (Arrays.binarySearch(supportBitAbis, name) >= 0) {
-                cpuAbi = name;
-                nativeLibraryDir = new File(libsDir, name).getAbsolutePath();
-                break;
-            }
-        }
 
-        if (nativeLibraryDir == null) {
+        Pair<String, String> resolved = resolveNativeLibraryDirFromLibsRoot(libsDir, is64Bit);
+        if (resolved == null) {
             throw new NullPointerException("unable to find supported abis "
-                    + Arrays.toString(supportBitAbis)
+                    + Arrays.toString(preferredAbis)
                     + " in dir " + libsPath);
         }
+        String cpuAbi = resolved.first;
+        String nativeLibraryDir = resolved.second;
         try {
             IApplicationInfo iApplicationInfo = RuntimeAccess.objectAccess(IApplicationInfo.class, packageInfo.applicationInfo);
             iApplicationInfo.setPrimaryCpuAbi(cpuAbi);

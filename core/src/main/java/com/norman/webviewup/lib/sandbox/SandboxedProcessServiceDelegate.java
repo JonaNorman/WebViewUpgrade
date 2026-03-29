@@ -120,6 +120,10 @@ public class SandboxedProcessServiceDelegate {
             if (sSandboxPmsHook != null && sSandboxPmsHook.isHook()) {
                 return;
             }
+            if (libsPath == null) {
+                Log.i(TAG, "libsPath 为 null，跳过沙盒 PMS Hook（已安装包场景，系统 PMS 直接处理）");
+                return;
+            }
             SandboxedProcessPackageManagerHook hook =
                     new SandboxedProcessPackageManagerHook(appContext,
                             ReplaceTarget.localPackage(webViewPkg, apkPath, libsPath));
@@ -144,6 +148,34 @@ public class SandboxedProcessServiceDelegate {
             Log.e(TAG, "createPackageContext 失败: " + webViewPkg, t);
             return null;
         }
+    }
+
+    /**
+     * 与 {@link com.norman.webviewup.lib.WebViewReplace} 中已安装包 libs 推导逻辑一致。
+     */
+    private String deriveLibsRootFromInstalledPkg(String pkgName) {
+        try {
+            ApplicationInfo ai = mAppContext.getPackageManager()
+                    .getApplicationInfo(pkgName, 0);
+            try {
+                Field f = ApplicationInfo.class.getDeclaredField("nativeLibraryRootDir");
+                f.setAccessible(true);
+                String root = (String) f.get(ai);
+                if (!TextUtils.isEmpty(root)) {
+                    return root;
+                }
+            } catch (Throwable ignore) {
+            }
+            if (!TextUtils.isEmpty(ai.nativeLibraryDir)) {
+                File parent = new File(ai.nativeLibraryDir).getParentFile();
+                if (parent != null) {
+                    return parent.getAbsolutePath();
+                }
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "deriveLibsRootFromInstalledPkg 失败: " + t.getMessage());
+        }
+        return null;
     }
 
     /**
@@ -197,6 +229,13 @@ public class SandboxedProcessServiceDelegate {
         if (TextUtils.isEmpty(webViewPkg)) {
             Log.e(TAG, "Intent 缺少 WebView 包名，无法安装子进程 PMS Hook");
             return;
+        }
+
+        if (libsPath == null) {
+            libsPath = deriveLibsRootFromInstalledPkg(webViewPkg);
+            if (libsPath != null) {
+                Log.i(TAG, "已安装包模式：子进程派生 libsPath=" + libsPath);
+            }
         }
 
         String nativeLibDir = resolveNativeLibraryDir(libsPath);

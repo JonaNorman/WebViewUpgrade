@@ -22,6 +22,8 @@ import com.norman.webviewup.lib.util.FileUtils;
 
 import com.norman.webviewup.lib.hook.ActivityManagerHook;
 
+import java.io.File;
+
 public class WebViewReplace {
 
     private static final String TAG = "WebViewReplace";
@@ -87,7 +89,8 @@ public class WebViewReplace {
             }
             String sourceDir = packageInfo.applicationInfo != null
                     ? packageInfo.applicationInfo.sourceDir : null;
-            replaceInternal(context, packageInfo, sourceDir, null);
+            String libsPath = deriveNativeLibsRoot(packageInfo.applicationInfo);
+            replaceInternal(context, packageInfo, sourceDir, libsPath);
         } catch (Throwable throwable) {
             throwAsWebViewReplaceException(throwable);
         }
@@ -102,6 +105,33 @@ public class WebViewReplace {
             message = "";
         }
         throw new WebViewReplaceException(message, throwable);
+    }
+
+    /**
+     * 已安装包场景：从 {@link ApplicationInfo} 推导 native lib 根目录（下含 arm64-v8a 等 ABI 子目录），
+     * 与热解压布局及 {@link com.norman.webviewup.lib.hook.AbstractWebViewPackageManagerHook#fillPackageInfo} 一致。
+     */
+    private static String deriveNativeLibsRoot(ApplicationInfo ai) {
+        if (ai == null) {
+            return null;
+        }
+        try {
+            java.lang.reflect.Field f =
+                    ApplicationInfo.class.getDeclaredField("nativeLibraryRootDir");
+            f.setAccessible(true);
+            String root = (String) f.get(ai);
+            if (!TextUtils.isEmpty(root)) {
+                return root;
+            }
+        } catch (Throwable ignore) {
+        }
+        if (!TextUtils.isEmpty(ai.nativeLibraryDir)) {
+            File parent = new File(ai.nativeLibraryDir).getParentFile();
+            if (parent != null && parent.isDirectory()) {
+                return parent.getAbsolutePath();
+            }
+        }
+        return null;
     }
 
     private synchronized static void replaceInternal(Context context, PackageInfo packageInfo, String apkPath, String libsPath) throws WebViewReplaceException {
