@@ -20,8 +20,6 @@ public final class CatalogEntry {
     public final String arch;
     @NonNull
     public final String downloadUrl;
-    @NonNull
-    public final String ghProxyUrl;
 
     public CatalogEntry(
             @NonNull String vendorId,
@@ -30,8 +28,7 @@ public final class CatalogEntry {
             @NonNull String version,
             int minApi,
             @NonNull String arch,
-            @NonNull String downloadUrl,
-            @NonNull String ghProxyUrl) {
+            @NonNull String downloadUrl) {
         this.vendorId = vendorId;
         this.vendorDisplayName = vendorDisplayName;
         this.packageName = packageName;
@@ -39,15 +36,6 @@ public final class CatalogEntry {
         this.minApi = minApi;
         this.arch = arch;
         this.downloadUrl = downloadUrl;
-        this.ghProxyUrl = ghProxyUrl;
-    }
-
-    @NonNull
-    public String resolveDownloadUrl(boolean preferGhProxy) {
-        if (preferGhProxy && ghProxyUrl != null && !ghProxyUrl.isEmpty()) {
-            return ghProxyUrl;
-        }
-        return downloadUrl != null ? downloadUrl : "";
     }
 
     @NonNull

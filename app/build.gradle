@@ -20,7 +20,6 @@ android {
         targetSdkVersion 35
         versionCode 1
         versionName "1.0"
-        buildConfigField "boolean", "CATALOG_PREFER_GHPROXY", "true"
     }
 
     aaptOptions {
@@ -257,10 +256,6 @@ tasks.register("prefetchWebViewApks") {
             genManifestOut.text = JsonOutput.prettyPrint(JsonOutput.toJson([]))
             return
         }
-        boolean preferGh = true
-        if (project.hasProperty("webviewPrefetchPreferGhProxy")) {
-            preferGh = project.property("webviewPrefetchPreferGhProxy").toString().toBoolean()
-        }
         boolean apkOfflineFail = (project.findProperty("webviewApkOfflineFail") ?: "false").toString().toBoolean()
 
         List vendors = catalogRoot.vendors as List
@@ -322,20 +317,30 @@ tasks.register("prefetchWebViewApks") {
                         primaryPackage = pns2[0] as String
                     }
                 }
-                downloadUrl = preferGh && foundEntry.ghproxy_url ?
-                        (foundEntry.ghproxy_url as String) : (foundEntry.url as String)
+                downloadUrl = (foundEntry.url ?: "") as String
             }
             if (!primaryPackage) {
                 primaryPackage = ""
             }
 
+            String canonicalUrl = downloadUrl
+
             String explicitAsset = item.assetName != null ? item.assetName.toString().trim() : ""
-            String assetName = explicitAsset ? explicitAsset : basenameFromUrl(downloadUrl)
+            String assetName = explicitAsset ? explicitAsset : basenameFromUrl(canonicalUrl)
 
             File cachedApk = file("${apkCacheDir}/${assetName}")
             File apkMetaFile = file("${apkCacheDir}/${assetName}.meta.json")
             Map apkMeta = readJsonMap(apkMetaFile)
-            boolean urlChanged = apkMeta.url && apkMeta.url != downloadUrl
+            boolean urlChanged = false
+            if (apkMeta.catalog_url) {
+                urlChanged = apkMeta.catalog_url != canonicalUrl
+            } else if (apkMeta.url) {
+                try {
+                    urlChanged = basenameFromUrl(apkMeta.url.toString()) != basenameFromUrl(canonicalUrl)
+                } catch (Exception ignored) {
+                    urlChanged = true
+                }
+            }
             if (urlChanged) {
                 cachedApk.delete()
                 apkMeta = [:]
@@ -343,15 +348,16 @@ tasks.register("prefetchWebViewApks") {
 
             boolean downloaded = false
             try {
-                HttpURLConnection conn = (HttpURLConnection) new URL(downloadUrl).openConnection()
+                HttpURLConnection conn = (HttpURLConnection) new URL(canonicalUrl).openConnection()
                 conn.setRequestMethod("GET")
                 conn.setConnectTimeout(60_000)
                 conn.setReadTimeout(600_000)
                 conn.setInstanceFollowRedirects(true)
-                if (apkMeta.etag) {
+                boolean sameUrlAsMeta = apkMeta.url && apkMeta.url.toString() == canonicalUrl
+                if (sameUrlAsMeta && apkMeta.etag) {
                     conn.setRequestProperty("If-None-Match", apkMeta.etag.toString())
                 }
-                if (apkMeta.lastModified) {
+                if (sameUrlAsMeta && apkMeta.lastModified) {
                     conn.setRequestProperty("If-Modified-Since", apkMeta.lastModified.toString())
                 }
 
@@ -373,10 +379,11 @@ tasks.register("prefetchWebViewApks") {
                     }
                     java.nio.file.Files.move(tmp.toPath(), cachedApk.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                     Map newApkMeta = [
+                            catalog_url      : canonicalUrl,
                             etag             : conn.getHeaderField("ETag"),
                             lastModified     : conn.getHeaderField("Last-Modified"),
                             lastFetchedMillis: System.currentTimeMillis(),
-                            url              : downloadUrl
+                            url              : canonicalUrl
                     ]
                     writeJsonMap(apkMetaFile, newApkMeta)
                     println "prefetchWebViewApks: downloaded ${assetName} (${cachedApk.length()} bytes)."

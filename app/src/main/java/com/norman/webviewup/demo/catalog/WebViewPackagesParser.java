@@ -40,7 +40,6 @@ public final class WebViewPackagesParser {
                 int minApi = p.optInt("min_api", 0);
                 String arch = p.optString("arch", "");
                 String url = p.optString("url", "");
-                String gh = p.optString("ghproxy_url", "");
                 out.add(new CatalogEntry(
                         vendorId,
                         vendorName,
@@ -48,8 +47,7 @@ public final class WebViewPackagesParser {
                         version,
                         minApi,
                         arch,
-                        url,
-                        gh));
+                        url));
             }
         }
         return out;

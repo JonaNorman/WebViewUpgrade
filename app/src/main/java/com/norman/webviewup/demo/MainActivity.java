@@ -28,7 +28,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 
-import com.norman.webviewup.demo.BuildConfig;
 import com.norman.webviewup.demo.catalog.DemoUpgradeChoice;
 import com.norman.webviewup.demo.catalog.WebViewPackageCatalog;
 import com.norman.webviewup.lib.UpgradeCallback;
@@ -170,9 +169,7 @@ public class MainActivity extends Activity implements UpgradeCallback {
     private void openKernelPicker(final boolean restartAfterSelection) {
         List<DemoUpgradeChoice> choices;
         try {
-            choices = WebViewPackageCatalog.buildCatalogChoices(
-                    this,
-                    BuildConfig.CATALOG_PREFER_GHPROXY);
+            choices = WebViewPackageCatalog.buildCatalogChoices(this);
             choices = WebViewPackageCatalog.appendInstalledChrome(
                     this,
                     choices,
@@ -182,6 +179,12 @@ public class MainActivity extends Activity implements UpgradeCallback {
             Toast.makeText(this, getString(R.string.wv_catalog_load_failed, e.getMessage()), Toast.LENGTH_LONG).show();
             return;
         }
+        showKernelPickerDialog(choices, restartAfterSelection);
+    }
+
+    private void showKernelPickerDialog(
+            @NonNull List<DemoUpgradeChoice> choices,
+            final boolean restartAfterSelection) {
         if (choices.isEmpty()) {
             Toast.makeText(this, R.string.wv_no_matching_packages, Toast.LENGTH_LONG).show();
             return;

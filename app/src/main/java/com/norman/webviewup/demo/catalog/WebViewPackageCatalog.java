@@ -24,9 +24,7 @@ public final class WebViewPackageCatalog {
     }
 
     @NonNull
-    public static List<DemoUpgradeChoice> buildCatalogChoices(
-            @NonNull Context context,
-            boolean preferGhProxy) throws Exception {
+    public static List<DemoUpgradeChoice> buildCatalogChoices(@NonNull Context context) throws Exception {
         String json = CatalogJsonLoader.loadCatalogJson(context);
         List<CatalogEntry> flat = WebViewPackagesParser.parse(json);
         String instruction = ProcessUtils.getCurrentInstruction();
@@ -63,8 +61,8 @@ public final class WebViewPackageCatalog {
         for (CatalogEntry e : filtered) {
             String key = AssetManifestEntry.key(e.vendorId, e.version, e.arch);
             AssetManifestEntry am = manifest.get(key);
-            String url = e.resolveDownloadUrl(preferGhProxy);
             String lineVendorArch = vendorArchLine(context, e.vendorId, e.arch);
+            String url = GithubMirrorUtils.applyDemoMirror(e.downloadUrl);
 
             if (am != null) {
                 boolean fileOk = WebViewAssetManifest.assetFileExists(context, am.assetName);
