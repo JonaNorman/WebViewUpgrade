@@ -2,6 +2,10 @@
 
 English | [简体中文](./README-ZH.md)
 
+[![Stars](https://img.shields.io/github/stars/JonaNorman/WebViewUpgrade?style=flat-square&logo=github)](https://github.com/JonaNorman/WebViewUpgrade/stargazers)
+[![Forks](https://img.shields.io/github/forks/JonaNorman/WebViewUpgrade?style=flat-square&logo=github)](https://github.com/JonaNorman/WebViewUpgrade/network/members)
+[![Issues](https://img.shields.io/github/issues/JonaNorman/WebViewUpgrade?style=flat-square)](https://github.com/JonaNorman/WebViewUpgrade/issues)
+
 This library implements the functionality of upgrading the WebView kernel on Android without installation.
 
 ### Application scope
@@ -80,9 +84,3 @@ Only a **single, full (monolithic) Chrome APK** can be used as the kernel source
 # ⭐ Star History
 
 ![Star History Chart](https://api.star-history.com/svg?repos=JonaNorman/WebViewUpgrade&type=Date)
-
-# Special Thanks
-
-| Stargazers                                                                                                 | Forkers                                                                                                                 |
-|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| [![Stargazers repo roster for @JonaNorman/HDRSample](https://reporoster.com/stars/JonaNorman/WebViewUpgrade)](https://github.com/JonaNorman/WebViewUpgrade/stargazers)                                          | [![Forkers repo roster for @JonaNorman/HDRSample](https://reporoster.com/forks/JonaNorman/WebViewUpgrade)](https://github.com/JonaNorman/WebViewUpgrade/network/members)                            |

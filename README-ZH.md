@@ -1,6 +1,10 @@
 # WebViewUpgrade
 简体中文 | [English](./README.md)
 
+[![Stars](https://img.shields.io/github/stars/JonaNorman/WebViewUpgrade?style=flat-square&logo=github)](https://github.com/JonaNorman/WebViewUpgrade/stargazers)
+[![Forks](https://img.shields.io/github/forks/JonaNorman/WebViewUpgrade?style=flat-square&logo=github)](https://github.com/JonaNorman/WebViewUpgrade/network/members)
+[![Issues](https://img.shields.io/github/issues/JonaNorman/WebViewUpgrade?style=flat-square)](https://github.com/JonaNorman/WebViewUpgrade/issues)
+
 还在经受WebView差异化带来的兼容问题，还在为腾讯X5内核收费所困扰，这个库也许就能轻松解决这些问题，它实现了Android免安装升级WebView内核的功能。如果你觉得有所收获，给这个库点个Star吧，你的鼓励是我前进最大的动力，这年头写代码不就这点追求嘛😊。
 
 ### 作用域
@@ -79,10 +83,3 @@ Android的设备五花八门，已测试以下功能和机型，欢迎大家提i
 # ⭐ star历史
 
 ![Star History Chart](https://api.star-history.com/svg?repos=JonaNorman/WebViewUpgrade&type=Date)
-
-
-# 特别感谢
-
-| Stargazers                                                                                                 | Forkers                                                                                                                 |
-|---------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
-| [![Stargazers repo roster for @JonaNorman/HDRSample](https://reporoster.com/stars/JonaNorman/WebViewUpgrade)](https://github.com/JonaNorman/WebViewUpgrade/stargazers)                                          | [![Forkers repo roster for @JonaNorman/HDRSample](https://reporoster.com/forks/JonaNorman/WebViewUpgrade)](https://github.com/JonaNorman/WebViewUpgrade/network/members)                            |
