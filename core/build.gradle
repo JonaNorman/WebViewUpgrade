@@ -26,7 +26,6 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
 }
 
 apply from: "../publish.gradle"
